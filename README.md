@@ -15,9 +15,22 @@ Manuscript information is provisional and can be updated before release. The int
 - `Figure5/Figure5_Nature_Panels.R`: final Figure 5 panel-generation code.
 - `Figure*/Figure*.R` and helper scripts: earlier/original analysis plotting scripts retained for transparency.
 - `data_manifest.tsv`: required and optional input files expected by the final plotting scripts.
+- `manuscript_sections.tsv`: provisional mapping between main figure code and manuscript Results section headings.
 - `check_required_inputs.R`: quick check for required local input files.
 
 Large input data objects and generated figures are intentionally not included in this repository.
+
+## Manuscript Result Sections
+
+The major figure code maps to the current manuscript Results sections as follows. These headings are provisional and can be updated before manuscript submission or repository release.
+
+| Figure code | Provisional Results section |
+| --- | --- |
+| `Figure1/` | Result 1: A single-cell transcriptomic atlas reveals the cellular landscape of chordoma |
+| `Figure2/` | Result 2: Intercellular communication analysis identifies macrophages and T cells as key interaction partners in the chordoma microenvironment |
+| `Figure3/` | Result 3: Pending final section heading |
+| `Figure4/` | Result 4: Identification of macrophages/T cells subgroups with different developmental stages and prognostic associations |
+| `Figure5/` | Result 5: Constructing a reference cell matrix for chordoma deconvolution to predict tumor pathological subtype and associated prognosis |
 
 ## Data and Input Files
 
