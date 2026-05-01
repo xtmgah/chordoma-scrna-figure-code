@@ -2,7 +2,6 @@ cff-version: 1.2.0
 title: "Chordoma scRNA-seq figure code"
 message: "If you use this code, please cite the associated manuscript once available."
 authors:
-  - family-names: "Zhang"
-    given-names: "T."
+  - name: "Chordoma scRNA-seq Study Team"
 repository-code: "https://github.com/xtmgah/chordoma-scrna-figure-code"
 date-released: "2026-05-01"
