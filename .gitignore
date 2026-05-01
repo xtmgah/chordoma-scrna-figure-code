@@ -15,6 +15,7 @@
 
 # Generated figures and local rendering outputs.
 nature_panels/
+review/panel_previews/
 *.pdf
 *.png
 *.jpg
@@ -27,3 +28,16 @@ nature_panels/
 tmp/
 cache/
 __pycache__/
+
+# Legacy/original plotting scripts retained locally but not distributed.
+Figure1/Figure1.R
+Figure2/Figure2.R
+Figure3/Figure3_1.R
+Figure3/tumor_cc_heatmap_Fig3_2.R
+Figure4/Mac/02_Macrophage_Plot_From_Assets.R
+Figure4/T_cell/02_Tcell_Plot_From_Assets.R
+Figure4/subcell_commu_cc4/02_Subcell_CellChat_CC4_Plot.R
+Figure5/02_Plot_CC4_AUC_Marker_Counts.R
+Figure5/04_plot_model_metrics.R
+Figure5/07_plot_pc_signal_prognostic_survival.R
+Figure5/plot_dc_vs_cc_pc_profiles.R

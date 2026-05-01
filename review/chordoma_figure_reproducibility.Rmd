@@ -1,0 +1,222 @@
+---
+title: "Chordoma scRNA-seq Figure Reproducibility Review"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    code_folding: show
+    self_contained: true
+    theme: readable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center",
+  out.width = "100%"
+)
+
+repo_root <- normalizePath("..", mustWork = TRUE)
+preview_root <- file.path(getwd(), "panel_previews")
+
+script_table <- data.frame(
+  figure = paste0("Figure", 1:5),
+  script = file.path(
+    repo_root,
+    paste0("Figure", 1:5),
+    paste0("Figure", 1:5, "_Nature_Panels.R")
+  ),
+  stringsAsFactors = FALSE
+)
+
+style_script <- file.path(repo_root, "_figure_style.R")
+
+result_sections <- read.delim(
+  file.path(repo_root, "manuscript_sections.tsv"),
+  stringsAsFactors = FALSE
+)
+result_sections$display_heading <- paste(result_sections$result_section, result_sections$provisional_heading, sep = ": ")
+
+read_source <- function(path) {
+  paste(readLines(path, warn = FALSE), collapse = "\n")
+}
+
+emit_source_block <- function(path) {
+  cat("```r\n")
+  cat(read_source(path))
+  cat("\n```\n")
+}
+
+panel_label <- function(path) {
+  label <- tools::file_path_sans_ext(basename(path))
+  label <- gsub("_", " ", label)
+  label <- sub("^fig", "Fig. ", label)
+  label
+}
+
+panel_files <- function(figure) {
+  panel_dir <- file.path(preview_root, figure)
+  if (!dir.exists(panel_dir)) {
+    return(character())
+  }
+  sort(list.files(panel_dir, pattern = "\\.png$", full.names = TRUE))
+}
+
+render_panel_gallery <- function(figure) {
+  files <- panel_files(figure)
+  if (!length(files)) {
+    cat("<p class='missing-panels'>No rendered panel previews were found for ", figure, ".</p>\n", sep = "")
+    return(invisible(NULL))
+  }
+
+  cat("<div class='panel-grid'>\n")
+  for (file in files) {
+    cat("<figure class='panel-card'>\n")
+    cat("<img src='", knitr::image_uri(file), "' alt='", panel_label(file), "' />\n", sep = "")
+    cat("<figcaption>", panel_label(file), "</figcaption>\n", sep = "")
+    cat("</figure>\n")
+  }
+  cat("</div>\n")
+}
+```
+
+<style>
+body {
+  font-family: "Roboto Condensed", "Arial Narrow", Arial, sans-serif;
+  color: #1b1b1b;
+}
+h1, h2, h3 {
+  font-weight: 500;
+  letter-spacing: 0;
+}
+pre, code {
+  font-family: Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+.main-container {
+  max-width: 1320px !important;
+}
+.panel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 18px;
+  margin: 18px 0 30px 0;
+}
+.panel-card {
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 0;
+  background: #fff;
+}
+.panel-card img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.panel-card figcaption {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #4d4d4d;
+}
+.missing-panels {
+  color: #9a3412;
+  font-weight: 500;
+}
+table {
+  font-size: 13px;
+}
+</style>
+
+# Overview
+
+This HTML review document combines the final Nature-style figure panels with the R code used to generate them. It is intended as a convenient manuscript-review artifact: reviewers can inspect the rendered panels and the exact plotting scripts in one downloadable file.
+
+The large processed input objects are not embedded here. To regenerate the panels from data, place the required files listed in `data_manifest.tsv` into the repository and run:
+
+```r
+source("run_all_nature_figures.R")
+```
+
+To rebuild this HTML report after the panels have been generated, run:
+
+```r
+source("review/render_review_html.R")
+```
+
+# Manuscript Result Mapping
+
+```{r result-table}
+knitr::kable(
+  result_sections[, c("figure", "display_heading")],
+  col.names = c("Figure code", "Provisional Results section")
+)
+```
+
+# Shared Plotting Style
+
+The final figure scripts use a common style helper for palettes, font setup, PDF export, and Nature-style themes.
+
+```{r shared-style-code, results='asis'}
+emit_source_block(style_script)
+```
+
+# Figure 1
+
+```{r figure1-section, results='asis'}
+render_panel_gallery("Figure1")
+```
+
+```{r figure1-code, results='asis'}
+emit_source_block(script_table$script[script_table$figure == "Figure1"])
+```
+
+# Figure 2
+
+```{r figure2-section, results='asis'}
+render_panel_gallery("Figure2")
+```
+
+```{r figure2-code, results='asis'}
+emit_source_block(script_table$script[script_table$figure == "Figure2"])
+```
+
+# Figure 3
+
+```{r figure3-section, results='asis'}
+render_panel_gallery("Figure3")
+```
+
+```{r figure3-code, results='asis'}
+emit_source_block(script_table$script[script_table$figure == "Figure3"])
+```
+
+# Figure 4
+
+```{r figure4-section, results='asis'}
+render_panel_gallery("Figure4")
+```
+
+```{r figure4-code, results='asis'}
+emit_source_block(script_table$script[script_table$figure == "Figure4"])
+```
+
+# Figure 5
+
+```{r figure5-section, results='asis'}
+render_panel_gallery("Figure5")
+```
+
+```{r figure5-code, results='asis'}
+emit_source_block(script_table$script[script_table$figure == "Figure5"])
+```
+
+# Session Information
+
+```{r session-info}
+sessionInfo()
+```
