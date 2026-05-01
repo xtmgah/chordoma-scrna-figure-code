@@ -1,0 +1,25 @@
+figure	script	input_path	required	notes
+Figure1	Figure1/Figure1_Nature_Panels.R	Figure1/sc_combined_clean.rds	yes	Integrated chordoma scRNA-seq Seurat object with UMAP coordinates and cell-type/sample/group metadata.
+Figure1	Figure1/Figure1_Nature_Panels.R	Figure1/sample_props_complete.rds	no	Optional sample-level cell-type proportions for CC vs PC boxplots.
+Figure1	Figure1/Figure1_Nature_Panels.R	Figure1/cell_type_props.rds	no	Optional grouped cell-type proportions for sorted CC vs PC fraction plot.
+Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/cellchat_object.rds	yes	CellChat object for all major cell types.
+Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/cellchat_PC.rds	yes	CellChat object for PC subset.
+Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/cellchat_CC.rds	yes	CellChat object for CC subset.
+Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/sc_combined_clean_clinical_full.rds	yes	Clinical Seurat object used for sample composition clustering and optional survival panels.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/sc_tumor.rds	yes	Tumor-cell Seurat object with tumor subclusters and clinical metadata.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/graph_cc.rds	yes	CC co-expression network igraph object.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/graph_pc.rds	yes	PC co-expression network igraph object.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/mat_cc_scaled.rds	yes	Scaled dynamic gene-expression matrix for CC pseudotime heatmap.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/cell_order_cc.rds	yes	Cell order for CC pseudotime heatmap.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/cluster_ordered.rds	yes	Ordered cluster assignments for CC pseudotime heatmap.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/pt_cc.rds	yes	CC pseudotime vector.
+Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/gene_clusters.csv	yes	Gene module annotation for CC pseudotime heatmap.
+Figure4	Figure4/Figure4_Nature_Panels.R	Figure4/Mac/plot_ready_rds/macrophage_auc_plot_ready.rds	yes	Macrophage subtype AUC plotting assets.
+Figure4	Figure4/Figure4_Nature_Panels.R	Figure4/T_cell/plot_ready_rds/tcell_auc_plot_ready.rds	yes	T-cell subtype AUC plotting assets.
+Figure4	Figure4/Figure4_Nature_Panels.R	Figure4/subcell_commu_cc4/plot_ready_rds/subcell_cc4_cellchat_input_assets.rds	yes	CC4 CellChat plotting assets.
+Figure4	Figure4/Figure4_Nature_Panels.R	Figure4/subcell_commu_cc4/subcell_cc4_cellchat_overall.rds	yes	Overall CC4 CellChat object.
+Figure4	Figure4/Figure4_Nature_Panels.R	Figure4/subcell_commu_cc4/subcell_cc4_cellchat_CC_vs_PC_merged.rds	no	Optional merged CellChat object for CC vs PC interaction comparison.
+Figure5	Figure5/Figure5_Nature_Panels.R	Figure5/plot_ready_rds/cc4_auc_reference_plot_ready.rds	yes	CC4 reference marker-count plotting assets.
+Figure5	Figure5/Figure5_Nature_Panels.R	Figure5/binary_modeling_results.rds	yes	Binary model performance results.
+Figure5	Figure5/Figure5_Nature_Panels.R	Figure5/pc_signal_prognostic_analysis.rds	yes	PC-signal survival model results.
+Figure5	Figure5/Figure5_Nature_Panels.R	Figure5/dc_profile_plot_inputs.rds	yes	Deconvolution and scatter plotting inputs.

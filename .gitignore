@@ -1,0 +1,29 @@
+.DS_Store
+.Rhistory
+.RData
+.Rproj.user/
+
+# Local data objects are not distributed with this code repository.
+*.rds
+*.RDS
+*.rda
+*.RData
+*.h5
+*.h5ad
+*.loom
+*.mtx
+
+# Generated figures and local rendering outputs.
+nature_panels/
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.svg
+
+# Local scratch and caches.
+tmp/
+cache/
+__pycache__/
