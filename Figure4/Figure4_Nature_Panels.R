@@ -199,32 +199,50 @@ if (requireNamespace("CellChat", quietly = TRUE)) {
   suppressPackageStartupMessages(library(CellChat))
   cc4_dir <- file.path(script_dir, "subcell_commu_cc4")
   assets <- readRDS(file.path(cc4_dir, "plot_ready_rds", "subcell_cc4_cellchat_input_assets.rds"))
-  color_map <- assets$color_map
   cellchat_overall <- readRDS(file.path(cc4_dir, "subcell_cc4_cellchat_overall.rds"))
-  local_colors <- palette_for(levels(cellchat_overall@idents), c(cell_type_palette, macrophage_palette, tcell_palette, color_map))
+  local_colors <- palette_for(levels(cellchat_overall@idents), cc4_subcell_palette)
   names(local_colors) <- levels(cellchat_overall@idents)
 
   p_scatter <- netAnalysis_signalingRole_scatter(
     cellchat_overall,
     color.use = local_colors,
     do.label = TRUE,
-    label.size = 2.7
+    label.size = 2.2,
+    dot.size = c(2.3, 5.4)
   ) +
     labs(x = "Outgoing signaling strength", y = "Incoming signaling strength", color = "Cells") +
-    theme_nature() +
+    theme_nature(base_size = 8.8) +
     theme(legend.position = "right")
   save_panel_pdf(p_scatter, file.path(OUT_DIR, "fig4_cellchat_cc4_signaling_role_scatter.pdf"), 4.9, 3.8)
 
   group_size <- as.numeric(table(cellchat_overall@idents))
   names(group_size) <- levels(cellchat_overall@idents)
-  open_panel_pdf(file.path(OUT_DIR, "fig4_cellchat_cc4_network_count.pdf"), 4.0, 4.0)
-  par(family = FONT_FAMILY, mar = c(0.5, 0.5, 1.2, 0.5), xpd = TRUE)
-  netVisual_circle(cellchat_overall@net$count, vertex.weight = group_size, weight.scale = TRUE, label.edge = FALSE, title.name = "Number of interactions", color.use = local_colors, vertex.label.cex = 0.58, edge.width.max = 2.6, alpha.edge = 0.32, arrow.size = 0.12, arrow.width = 0.6)
+  circle_label_map <- c(
+    "Tumor_PC_enriched" = "Tumor PC\nenriched",
+    "CD4 memory/helper T" = "CD4 memory/\nhelper T",
+    "Effector-memory T" = "Effector-\nmemory T",
+    "Activated cytotoxic T" = "Activated\ncytotoxic T",
+    "NK-like cytotoxic T" = "NK-like\ncytotoxic T"
+  )
+  relabel_circle_net <- function(net, labels) {
+    mapped <- unname(ifelse(rownames(net) %in% names(labels), labels[rownames(net)], rownames(net)))
+    rownames(net) <- mapped
+    colnames(net) <- mapped
+    net
+  }
+  circle_colors <- local_colors
+  names(circle_colors) <- ifelse(names(circle_colors) %in% names(circle_label_map), circle_label_map[names(circle_colors)], names(circle_colors))
+  circle_group_size <- group_size
+  names(circle_group_size) <- ifelse(names(circle_group_size) %in% names(circle_label_map), circle_label_map[names(circle_group_size)], names(circle_group_size))
+
+  open_panel_pdf(file.path(OUT_DIR, "fig4_cellchat_cc4_network_count.pdf"), 5.2, 4.9)
+  par(family = FONT_FAMILY, mar = c(1.4, 1.2, 1.35, 1.2), xpd = NA)
+  netVisual_circle(relabel_circle_net(cellchat_overall@net$count, circle_label_map), vertex.weight = circle_group_size, weight.scale = TRUE, label.edge = FALSE, title.name = "Number of interactions", color.use = circle_colors, vertex.label.cex = 0.43, edge.width.max = 2.25, alpha.edge = 0.32, arrow.size = 0.12, arrow.width = 0.55, edge.curved = 0.22, margin = 0.58)
   close_panel_pdf()
 
-  open_panel_pdf(file.path(OUT_DIR, "fig4_cellchat_cc4_network_strength.pdf"), 4.0, 4.0)
-  par(family = FONT_FAMILY, mar = c(0.5, 0.5, 1.2, 0.5), xpd = TRUE)
-  netVisual_circle(cellchat_overall@net$weight, vertex.weight = group_size, weight.scale = TRUE, label.edge = FALSE, title.name = "Interaction strength", color.use = local_colors, vertex.label.cex = 0.58, edge.width.max = 2.6, alpha.edge = 0.32, arrow.size = 0.12, arrow.width = 0.6)
+  open_panel_pdf(file.path(OUT_DIR, "fig4_cellchat_cc4_network_strength.pdf"), 5.2, 4.9)
+  par(family = FONT_FAMILY, mar = c(1.4, 1.2, 1.35, 1.2), xpd = NA)
+  netVisual_circle(relabel_circle_net(cellchat_overall@net$weight, circle_label_map), vertex.weight = circle_group_size, weight.scale = TRUE, label.edge = FALSE, title.name = "Interaction strength", color.use = circle_colors, vertex.label.cex = 0.43, edge.width.max = 2.25, alpha.edge = 0.32, arrow.size = 0.12, arrow.width = 0.55, edge.curved = 0.22, margin = 0.58)
   close_panel_pdf()
 
   merged_path <- file.path(cc4_dir, "subcell_cc4_cellchat_CC_vs_PC_merged.rds")

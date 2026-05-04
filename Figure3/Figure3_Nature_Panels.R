@@ -263,15 +263,27 @@ col_anno <- HeatmapAnnotation(
   simple_anno_size = unit(2.2, "mm")
 )
 module_levels <- levels(modules)
-module_cols <- setNames(c("#7B6FB4", "#D99548", "#5A8BC1", "#6AAE75")[seq_along(module_levels)], module_levels)
+module_cols <- setNames(c("#B7B7EB", "#EAB883", "#9BBBE1", "#6AAE75")[seq_along(module_levels)], module_levels)
+module_label_map <- setNames(
+  c(
+    "Module 1\nT-cell activation",
+    "Module 2\nCytoplasmic translation",
+    "Module 3\nOxygen response",
+    paste("Module", module_levels[-seq_len(min(3, length(module_levels)))])
+  )[seq_along(module_levels)],
+  module_levels
+)
 row_anno <- rowAnnotation(
-  Module = modules,
-  col = list(Module = module_cols),
-  annotation_name_gp = gpar(fontsize = 7, fontfamily = FONT_FAMILY),
-  simple_anno_size = unit(2.0, "mm")
+  Module_Info = anno_block(
+    gp = gpar(fill = module_cols),
+    labels = unname(module_label_map[module_levels]),
+    labels_rot = 0,
+    labels_gp = gpar(col = "white", fontsize = 6.2, fontface = "plain", fontfamily = FONT_FAMILY),
+    width = unit(46, "mm")
+  )
 )
 heatmap_pdf <- file.path(OUT_DIR, "fig3i_cc_pseudotime_dynamic_gene_heatmap.pdf")
-open_panel_pdf(heatmap_pdf, 6.7, 5.8)
+open_panel_pdf(heatmap_pdf, 7.7, 5.8)
 ht <- Heatmap(
   mat_cc_scaled,
   name = "Z-score",
@@ -280,7 +292,7 @@ ht <- Heatmap(
   cluster_row_slices = FALSE,
   column_split = cluster_ordered,
   cluster_columns = FALSE,
-  cluster_rows = FALSE,
+  cluster_rows = TRUE,
   show_row_dend = FALSE,
   top_annotation = col_anno,
   right_annotation = row_anno,

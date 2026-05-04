@@ -12,6 +12,10 @@ pdfhr2 <- function(...) {
     warning("Package showtext is not installed; using the active PDF device font fallback.", call. = FALSE)
     return(invisible(FALSE))
   }
+  if (!requireNamespace("sysfonts", quietly = TRUE)) {
+    warning("Package sysfonts is not installed; using the active PDF device font fallback.", call. = FALSE)
+    return(invisible(FALSE))
+  }
   font_files <- c(
     regular = Sys.getenv("ROBOTO_CONDENSED_REGULAR", "/Users/zhangt8/Library/Fonts/RobotoCondensed-Regular.ttf"),
     bold = Sys.getenv("ROBOTO_CONDENSED_BOLD", "/Users/zhangt8/Library/Fonts/RobotoCondensed-Bold.ttf"),
@@ -27,7 +31,7 @@ pdfhr2 <- function(...) {
     )
     return(invisible(FALSE))
   }
-  showtext::font_add(
+  sysfonts::font_add(
     family = FONT_FAMILY,
     regular = font_files[["regular"]],
     bold = font_files[["bold"]],
@@ -51,6 +55,42 @@ nature_palette <- c(
   "#756BB1", "#636363", "#DE2D26", "#08519C", "#006D2C", "#54278F"
 )
 
+ncicolor <- {
+  pal <- if (requireNamespace("ggsci", quietly = TRUE)) {
+    c(
+      ggsci::pal_npg(alpha = 1)(10),
+      ggsci::pal_jco(alpha = 1)(10),
+      ggsci::pal_lancet(alpha = 1)(9),
+      ggsci::pal_nejm(alpha = 1)(8)
+    )
+  } else {
+    nature_palette
+  }
+  unique(stats::na.omit(pal))
+}
+
+nci_at <- function(i, fallback) {
+  if (length(ncicolor) >= i && !is.na(ncicolor[[i]])) ncicolor[[i]] else fallback
+}
+
+subgroup_palette_values <- function(n) {
+  pal <- if (requireNamespace("ggsci", quietly = TRUE)) {
+    ggsci::pal_primer(palette = c("mark17"), alpha = 1)(min(max(n, 1), 17))
+  } else {
+    c(
+      "#006EDB", "#EB670F", "#DF0C24", "#179B9B", "#30A147", "#894CEB",
+      "#B88700", "#CE2C85", "#856D4C", "#527A29", "#D43511", "#167E53",
+      "#9D615C", "#64762D", "#A830E8", "#866E04", "#808FA3"
+    )
+  }
+  pal <- unique(stats::na.omit(pal))
+  if (n <= length(pal)) {
+    pal[seq_len(n)]
+  } else {
+    grDevices::colorRampPalette(pal)(n)
+  }
+}
+
 group_palette <- c(
   "CC" = "#4DBBD5",
   "PC" = "#7E5A9B",
@@ -61,45 +101,42 @@ group_palette <- c(
 )
 
 cell_type_palette <- c(
-  "Chordoma" = "#D55E00",
-  "Macrophage" = "#4E79A7",
-  "T cells" = "#009E73",
-  "Fibroblast" = "#E69F00",
-  "Neutrophil" = "#56B4E9",
-  "Cycling" = "#CC79A7",
-  "B cells" = "#0072B2",
-  "plasmablasts" = "#B07AA1",
-  "Endothelial" = "#59A14F",
-  "Mast cells" = "#8C564B",
-  "Osteoclast" = "#B15928",
-  "DCs" = "#6A3D9A",
-  "Mural cells" = "#9C755F",
-  "Plasma cell" = "#E15759"
+  "Chordoma" = nci_at(1, "#E64B35"),
+  "Macrophage" = nci_at(2, "#4DBBD5"),
+  "T cells" = nci_at(3, "#00A087"),
+  "Fibroblast" = nci_at(4, "#3C5488"),
+  "Neutrophil" = nci_at(5, "#F39B7F"),
+  "Cycling" = nci_at(6, "#8491B4"),
+  "B cells" = nci_at(11, "#0073C2"),
+  "plasmablasts" = nci_at(12, "#EFC000"),
+  "Endothelial" = nci_at(7, "#91D1C2"),
+  "Mast cells" = nci_at(9, "#7E6148"),
+  "Osteoclast" = nci_at(10, "#B09C85"),
+  "DCs" = nci_at(14, "#CD534C"),
+  "Mural cells" = nci_at(15, "#7AA6DC"),
+  "Plasma cell" = nci_at(18, "#3B3B3B")
 )
 
-macrophage_palette <- c(
-  "FTL+ Mac" = "#3B5BA5",
-  "CCL3+ Mac" = "#D55E00",
-  "FN1+ Mac" = "#009E73",
-  "CD1C+ Mac" = "#CC79A7",
-  "CD3E+ Mac" = "#E69F00",
-  "NAMPT+ Mac" = "#7E5A9B"
+cc4_subcell_levels <- c(
+  "CC_tumor1", "CC_tumor2", "CC_tumor3", "CC_tumor4", "Tumor_PC_enriched",
+  "FTL+ Mac", "CCL3+ Mac", "FN1+ Mac", "CD1C+ Mac", "CD3E+ Mac", "NAMPT+ Mac",
+  "CD4 memory/helper T", "Effector-memory T", "Activated cytotoxic T",
+  "NK-like cytotoxic T", "Treg", "MAIT-like T"
 )
 
-tcell_palette <- c(
-  "CD4 memory/helper T" = "#3B5BA5",
-  "Effector-memory T" = "#009E73",
-  "Activated cytotoxic T" = "#D55E00",
-  "NK-like cytotoxic T" = "#0072B2",
-  "Treg" = "#CC79A7",
-  "MAIT-like T" = "#E69F00"
-)
+cc4_subcell_palette <- setNames(subgroup_palette_values(length(cc4_subcell_levels)), cc4_subcell_levels)
+
+macrophage_palette <- cc4_subcell_palette[c("FTL+ Mac", "CCL3+ Mac", "FN1+ Mac", "CD1C+ Mac", "CD3E+ Mac", "NAMPT+ Mac")]
+
+tcell_palette <- cc4_subcell_palette[c("CD4 memory/helper T", "Effector-memory T", "Activated cytotoxic T", "NK-like cytotoxic T", "Treg", "MAIT-like T")]
+
+tumor_subcell_palette <- cc4_subcell_palette[c("CC_tumor1", "CC_tumor2", "CC_tumor3", "CC_tumor4", "Tumor_PC_enriched")]
 
 lineage_palette_shared <- c(
-  "Tumor" = "#D55E00",
-  "Macrophage" = "#4E79A7",
-  "T cell" = "#009E73",
-  "T cells" = "#009E73"
+  "Tumor" = cell_type_palette[["Chordoma"]],
+  "Macrophage" = cell_type_palette[["Macrophage"]],
+  "T cell" = cell_type_palette[["T cells"]],
+  "T cells" = cell_type_palette[["T cells"]]
 )
 
 nature_discrete <- function(n) {
@@ -109,19 +146,83 @@ nature_discrete <- function(n) {
   grDevices::colorRampPalette(nature_palette)(n)
 }
 
+unused_palette_values <- function(n, avoid = character()) {
+  pool <- unique(c(ncicolor, nature_palette, subgroup_palette_values(max(n, 17))))
+  pool <- pool[!is.na(pool)]
+  pool <- setdiff(pool, avoid)
+  if (n <= length(pool)) {
+    pool[seq_len(n)]
+  } else {
+    grDevices::colorRampPalette(pool)(n)
+  }
+}
+
 nature_named_palette <- function(values) {
   values <- unique(as.character(values))
-  setNames(nature_discrete(length(values)), values)
+  setNames(unused_palette_values(length(values)), values)
+}
+
+canonical_cell_type <- function(values) {
+  values <- as.character(values)
+  key <- tolower(trimws(values))
+  aliases <- c(
+    "t cell" = "T cells",
+    "t cells" = "T cells",
+    "t-cell" = "T cells",
+    "t-cells" = "T cells",
+    "b cell" = "B cells",
+    "b cells" = "B cells",
+    "plasmablast" = "plasmablasts",
+    "plasmablasts" = "plasmablasts",
+    "plasma cells" = "Plasma cell",
+    "plasma cell" = "Plasma cell",
+    "dc" = "DCs",
+    "dcs" = "DCs",
+    "dendritic cells" = "DCs",
+    "mural cell" = "Mural cells",
+    "mural cells" = "Mural cells",
+    "mast cell" = "Mast cells",
+    "mast cells" = "Mast cells",
+    "endothelial cells" = "Endothelial",
+    "endothelial" = "Endothelial",
+    "tumor" = "Chordoma",
+    "tumour" = "Chordoma",
+    "chordoma" = "Chordoma"
+  )
+  out <- values
+  hit <- key %in% names(aliases)
+  out[hit] <- aliases[key[hit]]
+  out
 }
 
 palette_for <- function(values, base_palette = nature_palette) {
   values <- unique(as.character(values))
-  named <- base_palette[intersect(names(base_palette), values)]
-  missing <- setdiff(values, names(named))
-  if (length(missing) > 0) {
-    named <- c(named, setNames(nature_discrete(length(missing)), missing))
+  if (is.null(names(base_palette))) {
+    palette_values <- if (length(values) <= length(base_palette)) {
+      base_palette[seq_len(length(values))]
+    } else {
+      grDevices::colorRampPalette(base_palette)(length(values))
+    }
+    return(setNames(palette_values, values))
   }
-  named[values]
+
+  colors <- setNames(rep(NA_character_, length(values)), values)
+  canonical <- canonical_cell_type(values)
+  for (i in seq_along(values)) {
+    value <- values[[i]]
+    canonical_value <- canonical[[i]]
+    if (value %in% names(base_palette)) {
+      colors[[i]] <- base_palette[[value]]
+    } else if (canonical_value %in% names(base_palette)) {
+      colors[[i]] <- base_palette[[canonical_value]]
+    }
+  }
+
+  missing <- names(colors)[is.na(colors)]
+  if (length(missing) > 0) {
+    colors[missing] <- unused_palette_values(length(missing), avoid = colors[!is.na(colors)])
+  }
+  colors[values]
 }
 
 sort_numeric_labels <- function(values) {

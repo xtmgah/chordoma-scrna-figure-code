@@ -23,6 +23,10 @@ Large input data objects and generated figures are intentionally not included in
 
 The public repository intentionally keeps only the curated Nature-panel plotting scripts. Earlier exploratory/original plotting scripts were removed from version control to reduce duplication and make the manuscript code release easier to review.
 
+## Color Conventions
+
+All main cell-type panels share one `ncicolor`-based palette defined in `_figure_style.R`, so the same cell type is rendered with the same color across Figures 1, 2, and 5. Figure 4 macrophage/T-cell/tumor subgroup panels use a separate `ggsci::pal_primer("mark17")` subgroup palette to keep fine-grained subtypes visually distinct from the major cell-type atlas colors.
+
 ## Manuscript Result Sections
 
 The major figure code maps to the current manuscript Results sections as follows. These headings are provisional and can be updated before manuscript submission or repository release.
