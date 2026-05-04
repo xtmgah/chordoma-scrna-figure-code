@@ -31,6 +31,10 @@ group_col <- intersect(c("clinical_group", "Subtype", "subtype"), colnames(meta)
 
 cell_types <- sort(unique(as.character(meta[[celltype_col]])))
 cell_cols <- palette_for(cell_types, cell_type_palette)
+sc@meta.data[[celltype_col]] <- factor(as.character(sc@meta.data[[celltype_col]]), levels = cell_types)
+meta[[celltype_col]] <- factor(as.character(meta[[celltype_col]]), levels = cell_types)
+celltype_plot_col <- "Cell type"
+sc@meta.data[[celltype_plot_col]] <- sc@meta.data[[celltype_col]]
 sample_ids <- sort(unique(as.character(meta[[sample_col]])))
 sample_cols <- setNames(nature_discrete(length(sample_ids)), sample_ids)
 
@@ -93,10 +97,10 @@ p_anno <- if (requireNamespace("scCustomize", quietly = TRUE)) {
   DimPlot_scCustom(
     sc,
     reduction = "umap",
-    group.by = celltype_col,
+    group.by = celltype_plot_col,
     label = TRUE,
     repel = TRUE,
-    label.size = 2.5,
+    label.size = 3.4,
     pt.size = 0.10,
     colors_use = cell_cols,
     raster = FALSE
@@ -105,10 +109,10 @@ p_anno <- if (requireNamespace("scCustomize", quietly = TRUE)) {
   DimPlot(
     sc,
     reduction = "umap",
-    group.by = celltype_col,
+    group.by = celltype_plot_col,
     label = TRUE,
     repel = TRUE,
-    label.size = 2.5,
+    label.size = 3.4,
     pt.size = 0.10,
     cols = cell_cols,
     raster = FALSE
@@ -117,6 +121,7 @@ p_anno <- if (requireNamespace("scCustomize", quietly = TRUE)) {
 p_anno <- p_anno +
   labs(title = NULL, color = "Cell type") +
   theme_umap_nature() +
+  guides(color = guide_legend(title = "Cell type", override.aes = list(size = 3.1))) +
   theme(legend.position = "right")
 save_panel_pdf(p_anno, file.path(OUT_DIR, "fig1c_annotated_celltype_umap.pdf"), 5.2, 4.3)
 
@@ -288,7 +293,7 @@ if (!is.na(group_col)) {
     DimPlot_scCustom(
       sc,
       reduction = "umap",
-      group.by = celltype_col,
+      group.by = celltype_plot_col,
       split.by = group_col,
       colors_use = cell_cols,
       label = TRUE,
@@ -301,7 +306,7 @@ if (!is.na(group_col)) {
     DimPlot(
       sc,
       reduction = "umap",
-      group.by = celltype_col,
+      group.by = celltype_plot_col,
       split.by = group_col,
       cols = cell_cols,
       label = TRUE,
@@ -312,8 +317,9 @@ if (!is.na(group_col)) {
     )
   }
   p_split <- p_split +
-    labs(title = NULL, color = "Cell type") +
+    labs(title = NULL, color = "Cell type", fill = "Cell type") +
     theme_umap_nature() +
+    guides(color = guide_legend(title = "Cell type", override.aes = list(size = 3.1))) +
     theme(legend.position = "right", legend.title = element_text(size = 8.8), legend.text = element_text(size = 7.6))
   save_panel_pdf(p_split, file.path(OUT_DIR, "fig1i_celltype_umap_split_by_pathology.pdf"), 7.4, 3.9)
 }
