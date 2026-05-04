@@ -250,18 +250,7 @@ cluster_ordered <- cluster_ordered[cell_order_cc]
 cluster_ordered <- factor(cluster_ordered, levels = unique(cluster_ordered))
 cluster_heat_cols <- setNames(nature_discrete(length(levels(cluster_ordered))), levels(cluster_ordered))
 modules <- factor(gene_clusters[rownames(mat_cc_scaled), 2])
-
-col_anno <- HeatmapAnnotation(
-  Cluster = cluster_ordered,
-  Pseudotime = pt_ordered,
-  col = list(
-    Cluster = cluster_heat_cols,
-    Pseudotime = colorRamp2(range(pt_ordered, na.rm = TRUE), c("#2166AC", "#FDD142"))
-  ),
-  annotation_name_gp = gpar(fontsize = 7, fontfamily = FONT_FAMILY),
-  annotation_name_side = "left",
-  simple_anno_size = unit(2.2, "mm")
-)
+pseudotime_col_fun <- colorRamp2(range(pt_ordered, na.rm = TRUE), c("#2166AC", "#FDD142"))
 module_levels <- levels(modules)
 module_cols <- setNames(c("#B7B7EB", "#EAB883", "#9BBBE1", "#6AAE75")[seq_along(module_levels)], module_levels)
 module_label_map <- setNames(
@@ -277,13 +266,65 @@ row_anno <- rowAnnotation(
   Module_Info = anno_block(
     gp = gpar(fill = module_cols),
     labels = unname(module_label_map[module_levels]),
-    labels_rot = 0,
+    labels_rot = 90,
     labels_gp = gpar(col = "white", fontsize = 6.2, fontface = "plain", fontfamily = FONT_FAMILY),
-    width = unit(46, "mm")
+    width = unit(8.0, "mm")
   )
 )
 heatmap_pdf <- file.path(OUT_DIR, "fig3i_cc_pseudotime_dynamic_gene_heatmap.pdf")
-open_panel_pdf(heatmap_pdf, 7.7, 5.8)
+open_panel_pdf(heatmap_pdf, 6.3, 5.8)
+bar_columns <- colnames(mat_cc_scaled)
+cluster_bar <- Heatmap(
+  matrix(as.character(cluster_ordered), nrow = 1, dimnames = list("Cluster", bar_columns)),
+  name = "Cluster",
+  col = cluster_heat_cols,
+  column_split = cluster_ordered,
+  cluster_column_slices = FALSE,
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_column_names = FALSE,
+  column_title = NULL,
+  show_row_names = TRUE,
+  row_names_side = "left",
+  row_names_gp = gpar(fontsize = 7.2, fontfamily = FONT_FAMILY),
+  row_names_max_width = unit(18, "mm"),
+  height = unit(3.8, "mm"),
+  column_gap = unit(0.35, "mm"),
+  rect_gp = gpar(col = NA),
+  border = TRUE,
+  heatmap_legend_param = list(
+    title = "Cluster",
+    title_gp = gpar(fontsize = 7.2, fontfamily = FONT_FAMILY, fontface = "plain"),
+    labels_gp = gpar(fontsize = 7.0, fontfamily = FONT_FAMILY),
+    grid_width = unit(3.2, "mm"),
+    grid_height = unit(3.2, "mm")
+  )
+)
+pseudotime_bar <- Heatmap(
+  matrix(as.numeric(pt_ordered), nrow = 1, dimnames = list("Pseudotime", bar_columns)),
+  name = "Pseudotime",
+  col = pseudotime_col_fun,
+  column_split = cluster_ordered,
+  cluster_column_slices = FALSE,
+  cluster_columns = FALSE,
+  cluster_rows = FALSE,
+  show_column_names = FALSE,
+  column_title = NULL,
+  show_row_names = TRUE,
+  row_names_side = "left",
+  row_names_gp = gpar(fontsize = 7.2, fontfamily = FONT_FAMILY),
+  row_names_max_width = unit(18, "mm"),
+  height = unit(3.8, "mm"),
+  column_gap = unit(0.35, "mm"),
+  rect_gp = gpar(col = NA),
+  border = TRUE,
+  heatmap_legend_param = list(
+    title = "Pseudotime",
+    title_gp = gpar(fontsize = 7.2, fontfamily = FONT_FAMILY, fontface = "plain"),
+    labels_gp = gpar(fontsize = 7.0, fontfamily = FONT_FAMILY),
+    legend_height = unit(22, "mm")
+  )
+)
 ht <- Heatmap(
   mat_cc_scaled,
   name = "Z-score",
@@ -294,7 +335,6 @@ ht <- Heatmap(
   cluster_columns = FALSE,
   cluster_rows = TRUE,
   show_row_dend = FALSE,
-  top_annotation = col_anno,
   right_annotation = row_anno,
   show_column_names = FALSE,
   show_row_names = FALSE,
@@ -305,12 +345,12 @@ ht <- Heatmap(
   column_title = NULL,
   heatmap_legend_param = list(
     title = "Z-score",
-    title_gp = gpar(fontsize = 7.5, fontfamily = FONT_FAMILY),
-    labels_gp = gpar(fontsize = 7, fontfamily = FONT_FAMILY),
+    title_gp = gpar(fontsize = 7.2, fontfamily = FONT_FAMILY, fontface = "plain"),
+    labels_gp = gpar(fontsize = 7.0, fontfamily = FONT_FAMILY),
     legend_height = unit(22, "mm")
   )
 )
-draw(ht, heatmap_legend_side = "right", annotation_legend_side = "right")
+draw(cluster_bar %v% pseudotime_bar %v% ht, heatmap_legend_side = "right", annotation_legend_side = "right")
 close_panel_pdf()
 
 message("Figure 3 nature panels written to: ", OUT_DIR)
