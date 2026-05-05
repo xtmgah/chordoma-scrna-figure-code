@@ -247,8 +247,13 @@ cell_order_cc <- intersect(cell_order_cc, colnames(mat_cc_scaled))
 mat_cc_scaled <- mat_cc_scaled[, cell_order_cc, drop = FALSE]
 pt_ordered <- pt_cc[cell_order_cc]
 cluster_ordered <- cluster_ordered[cell_order_cc]
-cluster_ordered <- factor(cluster_ordered, levels = unique(cluster_ordered))
-cluster_heat_cols <- setNames(nature_discrete(length(levels(cluster_ordered))), levels(cluster_ordered))
+cc_order <- as.character(c(12, 11, 5, 19, 9, 16, 13, 15, 17, 0, 6, 8, 3, 2, 18, 1, 10, 7, 4, 14))
+cluster_values <- as.character(cluster_ordered)
+cluster_levels_original <- c(intersect(cc_order, unique(cluster_values)), setdiff(unique(cluster_values), cc_order))
+cluster_ordered <- factor(cluster_values, levels = cluster_levels_original)
+cluster_color_levels <- sort_numeric_labels(unique(cluster_values))
+cluster_heat_cols_all <- setNames(nature_discrete(length(cluster_color_levels)), cluster_color_levels)
+cluster_heat_cols <- cluster_heat_cols_all[levels(cluster_ordered)]
 modules <- factor(gene_clusters[rownames(mat_cc_scaled), 2])
 pseudotime_col_fun <- colorRamp2(range(pt_ordered, na.rm = TRUE), c("#2166AC", "#FDD142"))
 module_levels <- levels(modules)
@@ -292,6 +297,7 @@ cluster_bar <- Heatmap(
   column_gap = unit(0.35, "mm"),
   rect_gp = gpar(col = NA),
   border = TRUE,
+  border_gp = gpar(col = "black", lwd = 0.02),
   heatmap_legend_param = list(
     title = "Cluster",
     title_gp = gpar(fontsize = 7.2, fontfamily = FONT_FAMILY, fontface = "plain"),
@@ -318,6 +324,7 @@ pseudotime_bar <- Heatmap(
   column_gap = unit(0.35, "mm"),
   rect_gp = gpar(col = NA),
   border = TRUE,
+  border_gp = gpar(col = "black", lwd = 0.02),
   heatmap_legend_param = list(
     title = "Pseudotime",
     title_gp = gpar(fontsize = 7.2, fontfamily = FONT_FAMILY, fontface = "plain"),
@@ -350,7 +357,12 @@ ht <- Heatmap(
     legend_height = unit(22, "mm")
   )
 )
-draw(cluster_bar %v% pseudotime_bar %v% ht, heatmap_legend_side = "right", annotation_legend_side = "right")
+draw(
+  cluster_bar %v% pseudotime_bar %v% ht,
+  heatmap_legend_side = "right",
+  annotation_legend_side = "right",
+  ht_gap = unit(c(0.15, 0.75), "mm")
+)
 close_panel_pdf()
 
 message("Figure 3 nature panels written to: ", OUT_DIR)
