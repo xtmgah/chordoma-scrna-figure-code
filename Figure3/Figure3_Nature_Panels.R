@@ -137,6 +137,15 @@ pt_file <- file.path(script_dir, "pt_cc.rds")
 if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
   pseudotime <- readRDS(pt_file)
   umap_embed <- Embeddings(sc_tumor, "umap")
+  all_tumor_df <- data.frame(
+    cell = rownames(umap_embed),
+    UMAP_1 = umap_embed[, 1],
+    UMAP_2 = umap_embed[, 2],
+    tumor_cluster = as.character(sc_tumor@meta.data[rownames(umap_embed), cluster_col]),
+    stringsAsFactors = FALSE
+  ) %>%
+    filter(!is.na(tumor_cluster)) %>%
+    mutate(tumor_cluster = factor(tumor_cluster, levels = cluster_levels))
   common_cells <- intersect(names(pseudotime), rownames(umap_embed))
   if (length(common_cells) > 100) {
     trajectory_df <- data.frame(
@@ -150,11 +159,17 @@ if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
       filter(is.finite(pseudotime), !is.na(tumor_cluster))
     trajectory_df$tumor_cluster <- factor(trajectory_df$tumor_cluster, levels = cluster_levels)
 
-    path_bins <- min(90, max(30, floor(nrow(trajectory_df) / 1500)))
-    trajectory_path <- trajectory_df %>%
-      arrange(pseudotime) %>%
-      mutate(path_bin = ntile(pseudotime, path_bins)) %>%
-      group_by(path_bin) %>%
+    trajectory_cluster_counts <- trajectory_df %>%
+      count(tumor_cluster, name = "n_cluster")
+    trajectory_plot_df <- trajectory_df %>%
+      left_join(trajectory_cluster_counts, by = "tumor_cluster") %>%
+      filter(n_cluster >= 120)
+
+    trajectory_nodes <- trajectory_plot_df %>%
+      group_by(tumor_cluster) %>%
+      mutate(path_bin = ntile(pseudotime, pmin(6, pmax(2, floor(dplyr::n() / 2500))))) %>%
+      ungroup() %>%
+      group_by(tumor_cluster, path_bin) %>%
       summarise(
         UMAP_1 = stats::median(UMAP_1, na.rm = TRUE),
         UMAP_2 = stats::median(UMAP_2, na.rm = TRUE),
@@ -162,16 +177,33 @@ if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
         n = dplyr::n(),
         .groups = "drop"
       ) %>%
-      filter(n >= 10) %>%
+      filter(n >= 20) %>%
       arrange(pseudotime)
-    if (nrow(trajectory_path) >= 6) {
-      path_index <- seq_len(nrow(trajectory_path))
-      smooth_df <- min(14, max(5, floor(nrow(trajectory_path) / 6)))
-      trajectory_path$UMAP_1 <- stats::predict(stats::smooth.spline(path_index, trajectory_path$UMAP_1, df = smooth_df), path_index)$y
-      trajectory_path$UMAP_2 <- stats::predict(stats::smooth.spline(path_index, trajectory_path$UMAP_2, df = smooth_df), path_index)$y
+
+    trajectory_segments <- data.frame()
+    if (nrow(trajectory_nodes) >= 3) {
+      node_coords <- as.matrix(trajectory_nodes[, c("UMAP_1", "UMAP_2")])
+      node_dist <- as.matrix(stats::dist(node_coords))
+      pt_scaled <- as.numeric(scale(trajectory_nodes$pseudotime))
+      node_weight <- node_dist + abs(outer(pt_scaled, pt_scaled, "-")) * 0.25
+      node_weight[lower.tri(node_weight, diag = TRUE)] <- NA_real_
+      edge_index <- which(!is.na(node_weight), arr.ind = TRUE)
+      node_graph <- graph_from_data_frame(
+        data.frame(from = edge_index[, 1], to = edge_index[, 2], weight = node_weight[edge_index]),
+        directed = FALSE,
+        vertices = data.frame(name = seq_len(nrow(trajectory_nodes)))
+      )
+      node_tree <- igraph::mst(node_graph, weights = E(node_graph)$weight)
+      node_edges <- igraph::as_data_frame(node_tree, what = "edges")
+      trajectory_segments <- data.frame(
+        x = trajectory_nodes$UMAP_1[as.integer(node_edges$from)],
+        y = trajectory_nodes$UMAP_2[as.integer(node_edges$from)],
+        xend = trajectory_nodes$UMAP_1[as.integer(node_edges$to)],
+        yend = trajectory_nodes$UMAP_2[as.integer(node_edges$to)]
+      )
     }
 
-    cluster_label_df <- trajectory_df %>%
+    cluster_label_df <- all_tumor_df %>%
       group_by(tumor_cluster) %>%
       summarise(
         UMAP_1 = stats::median(UMAP_1, na.rm = TRUE),
@@ -188,16 +220,15 @@ if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
         plot.margin = margin(3, 4, 3, 4)
       )
 
-    p_cluster_traj <- ggplot(trajectory_df, aes(UMAP_1, UMAP_2)) +
+    p_cluster_traj <- ggplot(all_tumor_df, aes(UMAP_1, UMAP_2)) +
       geom_point(aes(color = tumor_cluster), size = 0.018, alpha = 0.80, stroke = 0) +
-      geom_path(
-        data = trajectory_path,
-        aes(UMAP_1, UMAP_2),
+      geom_segment(
+        data = trajectory_segments,
+        aes(x = x, y = y, xend = xend, yend = yend),
         inherit.aes = FALSE,
-        linewidth = 0.30,
-        alpha = 0.82,
+        linewidth = 0.34,
+        alpha = 0.86,
         lineend = "round",
-        linejoin = "round",
         color = "black"
       ) +
       ggrepel::geom_text_repel(
@@ -220,16 +251,16 @@ if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
       guides(color = guide_legend(ncol = 2, override.aes = list(size = 2.6, alpha = 1))) +
       trajectory_theme
 
-    p_time_traj <- ggplot(trajectory_df, aes(UMAP_1, UMAP_2)) +
-      geom_point(aes(color = pseudotime), size = 0.018, alpha = 0.86, stroke = 0) +
-      geom_path(
-        data = trajectory_path,
-        aes(UMAP_1, UMAP_2),
+    p_time_traj <- ggplot() +
+      geom_point(data = all_tumor_df, aes(UMAP_1, UMAP_2), color = "grey88", size = 0.012, alpha = 0.35, stroke = 0) +
+      geom_point(data = trajectory_plot_df, aes(UMAP_1, UMAP_2, color = pseudotime), size = 0.018, alpha = 0.86, stroke = 0) +
+      geom_segment(
+        data = trajectory_segments,
+        aes(x = x, y = y, xend = xend, yend = yend),
         inherit.aes = FALSE,
-        linewidth = 0.30,
-        alpha = 0.82,
+        linewidth = 0.34,
+        alpha = 0.86,
         lineend = "round",
-        linejoin = "round",
         color = "black"
       ) +
       scale_color_viridis_c(option = "plasma", name = "Pseudotime") +
