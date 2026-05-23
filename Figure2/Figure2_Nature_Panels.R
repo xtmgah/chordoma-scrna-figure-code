@@ -66,10 +66,10 @@ plot_cellchat_networks <- function(cellchat_obj, prefix, source_name = "Chordoma
     theme(legend.position = "right")
   save_panel_pdf(p_scatter, file.path(OUT_DIR, paste0(prefix, "_signaling_role_scatter.pdf")), 4.8, 3.6)
 
-  open_panel_pdf(file.path(OUT_DIR, paste0(prefix, "_signaling_role_heatmap.pdf")), 7.8, 7.1)
-  ht_out <- make_cellchat_role_heatmap(cellchat_obj, pattern = "outgoing", title = "Outgoing signaling", color.use = colors, transpose = TRUE)
-  ht_in <- make_cellchat_role_heatmap(cellchat_obj, pattern = "incoming", title = "Incoming signaling", color.use = colors, transpose = TRUE)
-  ComplexHeatmap::draw(ht_out %v% ht_in, heatmap_legend_side = "bottom", annotation_legend_side = "bottom", merge_legends = TRUE, padding = unit(c(20, 2, 4, 2), "mm"))
+  open_panel_pdf(file.path(OUT_DIR, paste0(prefix, "_signaling_role_heatmap.pdf")), 11.8, 7.4)
+  ht_out <- make_cellchat_role_heatmap_original(cellchat_obj, pattern = "outgoing", color.use = colors)
+  ht_in <- make_cellchat_role_heatmap_original(cellchat_obj, pattern = "incoming", color.use = colors)
+  ComplexHeatmap::draw(ht_out + ht_in, heatmap_legend_side = "right", annotation_legend_side = "bottom", merge_legends = TRUE, padding = unit(c(4, 3, 3, 3), "mm"))
   close_panel_pdf()
 }
 
@@ -104,6 +104,37 @@ complete_named_colors <- function(values, preferred = NULL) {
   preferred <- preferred[names(preferred) %in% values]
   missing <- setdiff(values, names(preferred))
   c(preferred, nature_named_palette(missing))[values]
+}
+
+style_cellchat_heatmap <- function(ht, row_font = 6.0, column_font = 6.2, title_font = 10.8) {
+  ht@row_names_param$gp <- gpar(fontsize = row_font, lineheight = 0.88, fontfamily = FONT_FAMILY)
+  ht@column_names_param$gp <- gpar(fontsize = column_font, lineheight = 0.88, fontfamily = FONT_FAMILY)
+  ht@column_title_param$gp <- gpar(fontsize = title_font, lineheight = 0.9, fontfamily = FONT_FAMILY, fontface = "plain")
+  ht@matrix_legend_param$title_gp <- gpar(fontsize = 8.8, fontfamily = FONT_FAMILY, fontface = "plain")
+  ht@matrix_legend_param$labels_gp <- gpar(fontsize = 8.0, fontfamily = FONT_FAMILY)
+  ht
+}
+
+make_cellchat_role_heatmap_original <- function(cellchat_obj, pattern, title = NULL, display_title = NULL, color.use = NULL, signaling = NULL, width = 8.8, height = 14.2, title_font = 10.8) {
+  ht <- CellChat::netAnalysis_signalingRole_heatmap(
+    cellchat_obj,
+    pattern = pattern,
+    signaling = signaling,
+    title = title,
+    font.size = 5.6,
+    font.size.title = 10,
+    width = width,
+    height = height,
+    color.use = color.use,
+    cluster.rows = FALSE,
+    cluster.cols = FALSE
+  )
+  ht <- style_cellchat_heatmap(ht, title_font = title_font)
+  if (!is.null(display_title)) {
+    ht@column_title <- display_title
+    ht@column_title_param$gp <- gpar(fontsize = title_font, lineheight = 0.9, fontfamily = FONT_FAMILY, fontface = "plain")
+  }
+  ht
 }
 
 make_cellchat_role_heatmap <- function(cellchat_obj, pattern, title, color.use = NULL, signaling = NULL, transpose = TRUE, heatmap_height = NULL, heatmap_width = NULL, sort_pathways = TRUE, show_celltype_legend = TRUE, title_position = c("column", "row")) {
@@ -231,10 +262,13 @@ if (requireNamespace("CellChat", quietly = TRUE)) {
   plot_cellchat_networks(cellchat_pc, "fig2b_pc_cellchat")
   plot_cellchat_networks(cellchat_cc, "fig2c_cc_cellchat")
 
-  pathways <- top_cellchat_pathways(list(cellchat_pc, cellchat_cc), n = 3)
+  all_pathways <- names(sort(cellchat_pathway_strength(cellchat_all), decreasing = TRUE))
+  pathways <- intersect(all_pathways, intersect(cellchat_pc@netP$pathways, cellchat_cc@netP$pathways))
+  pathways <- pathways[seq_len(min(3, length(pathways)))]
   if (length(pathways) > 0) {
     unlink(list.files(OUT_DIR, pattern = "^fig2h_.*_(pc|cc)_hierarchy\\.pdf$", full.names = TRUE))
     unlink(file.path(OUT_DIR, "fig2i_mif_fn1_app_signaling_comparison.pdf"))
+    unlink(list.files(OUT_DIR, pattern = "^fig2i_top3_.*_signaling_comparison\\.pdf$", full.names = TRUE))
     for (pathway in pathways) {
       pc_cols <- palette_for(levels(cellchat_pc@idents), c(cell_type_palette, macrophage_palette, tcell_palette))
       cc_cols <- palette_for(levels(cellchat_cc@idents), c(cell_type_palette, macrophage_palette, tcell_palette))
@@ -256,34 +290,28 @@ if (requireNamespace("CellChat", quietly = TRUE)) {
     }
 
     comparison_file <- paste0("fig2i_top3_", paste(tolower(make.names(pathways)), collapse = "_"), "_signaling_comparison.pdf")
-    open_panel_pdf(file.path(OUT_DIR, comparison_file), 3.9, 5.6)
-    ht_pc <- make_cellchat_role_heatmap(
+    open_panel_pdf(file.path(OUT_DIR, comparison_file), 6.2, 2.65)
+    ht_pc <- make_cellchat_role_heatmap_original(
       cellchat_pc,
       pattern = "all",
       signaling = pathways,
-      title = "PC",
+      display_title = "PC",
       color.use = pc_cols,
-      transpose = TRUE,
-      heatmap_height = unit(1.55, "in"),
-      heatmap_width = unit(1.35, "in"),
-      sort_pathways = TRUE,
-      show_celltype_legend = FALSE,
-      title_position = "row"
+      width = 3.1,
+      height = 1.05,
+      title_font = 9.2
     )
-    ht_cc <- make_cellchat_role_heatmap(
+    ht_cc <- make_cellchat_role_heatmap_original(
       cellchat_cc,
       pattern = "all",
       signaling = pathways,
-      title = "CC",
+      display_title = "CC",
       color.use = cc_cols,
-      transpose = TRUE,
-      heatmap_height = unit(1.55, "in"),
-      heatmap_width = unit(1.35, "in"),
-      sort_pathways = TRUE,
-      show_celltype_legend = FALSE,
-      title_position = "row"
+      width = 3.1,
+      height = 1.05,
+      title_font = 9.2
     )
-    ComplexHeatmap::draw(ht_pc %v% ht_cc, heatmap_legend_side = "bottom", annotation_legend_side = "bottom", merge_legends = TRUE, padding = unit(c(8, 2, 2, 2), "mm"))
+    ComplexHeatmap::draw(ht_pc + ht_cc, heatmap_legend_side = "right", annotation_legend_side = "bottom", merge_legends = TRUE, padding = unit(c(4, 2, 2, 2), "mm"))
     close_panel_pdf()
   }
 } else {
