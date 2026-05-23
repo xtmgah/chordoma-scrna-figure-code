@@ -159,15 +159,42 @@ if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
       filter(is.finite(pseudotime), !is.na(tumor_cluster))
     trajectory_df$tumor_cluster <- factor(trajectory_df$tumor_cluster, levels = cluster_levels)
 
-    trajectory_cluster_counts <- trajectory_df %>%
+    all_tumor_df$pseudotime <- trajectory_df$pseudotime[match(all_tumor_df$cell, trajectory_df$cell)]
+    if (requireNamespace("FNN", quietly = TRUE)) {
+      missing_idx <- which(!is.finite(all_tumor_df$pseudotime))
+      finite_idx <- which(is.finite(all_tumor_df$pseudotime))
+      impute_pseudotime <- function(query_idx, ref_idx, k = 25) {
+        if (!length(query_idx) || !length(ref_idx)) return(invisible(NULL))
+        k_use <- min(k, length(ref_idx))
+        nn <- FNN::get.knnx(
+          data = as.matrix(all_tumor_df[ref_idx, c("UMAP_1", "UMAP_2")]),
+          query = as.matrix(all_tumor_df[query_idx, c("UMAP_1", "UMAP_2")]),
+          k = k_use
+        )
+        weights <- 1 / pmax(nn$nn.dist, 1e-6)
+        values <- matrix(all_tumor_df$pseudotime[ref_idx][nn$nn.index], nrow = length(query_idx))
+        all_tumor_df$pseudotime[query_idx] <<- rowSums(values * weights, na.rm = TRUE) / rowSums(weights, na.rm = TRUE)
+        invisible(NULL)
+      }
+      for (cluster_id in cluster_levels) {
+        query_idx <- missing_idx[as.character(all_tumor_df$tumor_cluster[missing_idx]) == cluster_id]
+        ref_idx <- finite_idx[as.character(all_tumor_df$tumor_cluster[finite_idx]) == cluster_id]
+        if (length(ref_idx) < 15) ref_idx <- finite_idx
+        impute_pseudotime(query_idx, ref_idx)
+      }
+    }
+
+    trajectory_color_df <- all_tumor_df %>%
+      filter(is.finite(pseudotime))
+    trajectory_cluster_counts <- trajectory_color_df %>%
       count(tumor_cluster, name = "n_cluster")
-    trajectory_plot_df <- trajectory_df %>%
+    trajectory_graph_df <- trajectory_color_df %>%
       left_join(trajectory_cluster_counts, by = "tumor_cluster") %>%
       filter(n_cluster >= 120)
 
-    trajectory_nodes <- trajectory_plot_df %>%
+    trajectory_nodes <- trajectory_graph_df %>%
       group_by(tumor_cluster) %>%
-      mutate(path_bin = ntile(pseudotime, pmin(6, pmax(2, floor(dplyr::n() / 2500))))) %>%
+      mutate(path_bin = ntile(pseudotime, pmin(12, pmax(3, floor(dplyr::n() / 1200))))) %>%
       ungroup() %>%
       group_by(tumor_cluster, path_bin) %>%
       summarise(
@@ -226,10 +253,10 @@ if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
         data = trajectory_segments,
         aes(x = x, y = y, xend = xend, yend = yend),
         inherit.aes = FALSE,
-        linewidth = 0.34,
-        alpha = 0.86,
+        linewidth = 0.30,
+        alpha = 0.92,
         lineend = "round",
-        color = "black"
+        color = "#4A4A4A"
       ) +
       ggrepel::geom_text_repel(
         data = cluster_label_df,
@@ -252,16 +279,15 @@ if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
       trajectory_theme
 
     p_time_traj <- ggplot() +
-      geom_point(data = all_tumor_df, aes(UMAP_1, UMAP_2), color = "grey88", size = 0.012, alpha = 0.35, stroke = 0) +
-      geom_point(data = trajectory_plot_df, aes(UMAP_1, UMAP_2, color = pseudotime), size = 0.018, alpha = 0.86, stroke = 0) +
+      geom_point(data = trajectory_color_df, aes(UMAP_1, UMAP_2, color = pseudotime), size = 0.026, alpha = 0.92, stroke = 0) +
       geom_segment(
         data = trajectory_segments,
         aes(x = x, y = y, xend = xend, yend = yend),
         inherit.aes = FALSE,
-        linewidth = 0.34,
-        alpha = 0.86,
+        linewidth = 0.30,
+        alpha = 0.92,
         lineend = "round",
-        color = "black"
+        color = "#4A4A4A"
       ) +
       scale_color_viridis_c(option = "plasma", name = "Pseudotime") +
       coord_equal() +
