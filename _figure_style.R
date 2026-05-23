@@ -333,3 +333,42 @@ current_script_dir <- function() {
 message_panel <- function(path) {
   message("  wrote ", normalizePath(path, mustWork = FALSE))
 }
+
+pdf_panel_to_png <- function(pdf, dest = sub("\\.pdf$", ".png", pdf), size = 1800) {
+  dir.create(dirname(dest), recursive = TRUE, showWarnings = FALSE)
+  if (nzchar(Sys.which("qlmanage"))) {
+    tmp_dir <- tempfile("panel_preview_")
+    dir.create(tmp_dir, recursive = TRUE, showWarnings = FALSE)
+    on.exit(unlink(tmp_dir, recursive = TRUE), add = TRUE)
+    status <- suppressWarnings(system2("qlmanage", c("-t", "-s", as.character(size), "-o", tmp_dir, pdf), stdout = TRUE, stderr = TRUE))
+    invisible(status)
+    produced <- file.path(tmp_dir, paste0(basename(pdf), ".png"))
+    if (file.exists(produced)) {
+      file.copy(produced, dest, overwrite = TRUE)
+      return(dest)
+    }
+  }
+  if (nzchar(Sys.which("sips"))) {
+    status <- suppressWarnings(system2("sips", c("-s", "format", "png", pdf, "--out", dest), stdout = TRUE, stderr = TRUE))
+    invisible(status)
+    if (file.exists(dest)) return(dest)
+  }
+  warning("No local PDF-to-PNG preview tool produced output for: ", pdf, call. = FALSE)
+  invisible(NA_character_)
+}
+
+export_large_panel_pngs <- function(panel_dir, threshold_mb = 1, size = 1800) {
+  if (!dir.exists(panel_dir)) return(invisible(character()))
+  pdfs <- list.files(panel_dir, pattern = "\\.pdf$", full.names = TRUE)
+  pdfs <- pdfs[file.info(pdfs)$size > threshold_mb * 1024^2]
+  if (!length(pdfs)) return(invisible(character()))
+  out <- vapply(pdfs, function(pdf) {
+    dest <- sub("\\.pdf$", ".png", pdf)
+    if (!file.exists(dest) || file.info(dest)$mtime < file.info(pdf)$mtime) {
+      pdf_panel_to_png(pdf, dest = dest, size = size)
+    } else {
+      dest
+    }
+  }, character(1))
+  invisible(out)
+}

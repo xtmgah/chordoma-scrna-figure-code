@@ -1,6 +1,7 @@
 options(stringsAsFactors = FALSE)
 
 root_dir <- dirname(normalizePath(sub("^--file=", "", grep("^--file=", commandArgs(FALSE), value = TRUE)[1]), mustWork = TRUE))
+source(file.path(root_dir, "_figure_style.R"))
 
 scripts <- c(
   file.path(root_dir, "Figure1", "Figure1_Nature_Panels.R"),
@@ -17,6 +18,7 @@ for (script in scripts) {
       env <- new.env(parent = globalenv())
       env$SCRIPT_DIR <- dirname(script)
       source(script, local = env)
+      export_large_panel_pngs(file.path(dirname(script), "nature_panels"))
     },
     error = function(e) {
       message("FAILED: ", script)

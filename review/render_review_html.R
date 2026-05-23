@@ -105,6 +105,12 @@ for (figure in figures) {
     next
   }
 
+  expected_previews <- file.path(out_dir, paste0(tools::file_path_sans_ext(basename(pdfs)), ".png"))
+  stale_previews <- setdiff(list.files(out_dir, pattern = "\\.png$", full.names = TRUE), expected_previews)
+  if (length(stale_previews)) {
+    unlink(stale_previews)
+  }
+
   message("Creating previews for ", figure, ": ", length(pdfs), " panels")
   for (pdf in pdfs) {
     make_preview(pdf, out_dir)

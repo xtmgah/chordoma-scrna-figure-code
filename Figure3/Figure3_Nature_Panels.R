@@ -132,6 +132,127 @@ if ("Cluster" %in% colnames(meta)) {
   save_panel_pdf(p_patient, file.path(OUT_DIR, "fig3d_tumor_subtype_composition_by_patient_cluster.pdf"), 2.65, 3.0)
 }
 
+message("Figure 3: pseudotime trajectory panel")
+pt_file <- file.path(script_dir, "pt_cc.rds")
+if (file.exists(pt_file) && "umap" %in% names(sc_tumor@reductions)) {
+  pseudotime <- readRDS(pt_file)
+  umap_embed <- Embeddings(sc_tumor, "umap")
+  common_cells <- intersect(names(pseudotime), rownames(umap_embed))
+  if (length(common_cells) > 100) {
+    trajectory_df <- data.frame(
+      cell = common_cells,
+      UMAP_1 = umap_embed[common_cells, 1],
+      UMAP_2 = umap_embed[common_cells, 2],
+      pseudotime = as.numeric(pseudotime[common_cells]),
+      tumor_cluster = as.character(sc_tumor@meta.data[common_cells, cluster_col]),
+      stringsAsFactors = FALSE
+    ) %>%
+      filter(is.finite(pseudotime), !is.na(tumor_cluster))
+    trajectory_df$tumor_cluster <- factor(trajectory_df$tumor_cluster, levels = cluster_levels)
+
+    path_bins <- min(90, max(30, floor(nrow(trajectory_df) / 1500)))
+    trajectory_path <- trajectory_df %>%
+      arrange(pseudotime) %>%
+      mutate(path_bin = ntile(pseudotime, path_bins)) %>%
+      group_by(path_bin) %>%
+      summarise(
+        UMAP_1 = stats::median(UMAP_1, na.rm = TRUE),
+        UMAP_2 = stats::median(UMAP_2, na.rm = TRUE),
+        pseudotime = stats::median(pseudotime, na.rm = TRUE),
+        n = dplyr::n(),
+        .groups = "drop"
+      ) %>%
+      filter(n >= 10) %>%
+      arrange(pseudotime)
+    if (nrow(trajectory_path) >= 6) {
+      path_index <- seq_len(nrow(trajectory_path))
+      smooth_df <- min(14, max(5, floor(nrow(trajectory_path) / 6)))
+      trajectory_path$UMAP_1 <- stats::predict(stats::smooth.spline(path_index, trajectory_path$UMAP_1, df = smooth_df), path_index)$y
+      trajectory_path$UMAP_2 <- stats::predict(stats::smooth.spline(path_index, trajectory_path$UMAP_2, df = smooth_df), path_index)$y
+    }
+
+    cluster_label_df <- trajectory_df %>%
+      group_by(tumor_cluster) %>%
+      summarise(
+        UMAP_1 = stats::median(UMAP_1, na.rm = TRUE),
+        UMAP_2 = stats::median(UMAP_2, na.rm = TRUE),
+        .groups = "drop"
+      )
+
+    trajectory_theme <- theme_umap_nature(base_size = 9.2) +
+      theme(
+        plot.title = element_text(face = "plain", size = 10.5, hjust = 0.5),
+        legend.position = "right",
+        legend.title = element_text(face = "plain", size = 8.6),
+        legend.text = element_text(size = 7.6),
+        plot.margin = margin(3, 4, 3, 4)
+      )
+
+    p_cluster_traj <- ggplot(trajectory_df, aes(UMAP_1, UMAP_2)) +
+      geom_point(aes(color = tumor_cluster), size = 0.018, alpha = 0.80, stroke = 0) +
+      geom_path(
+        data = trajectory_path,
+        aes(UMAP_1, UMAP_2),
+        inherit.aes = FALSE,
+        linewidth = 0.30,
+        alpha = 0.82,
+        lineend = "round",
+        linejoin = "round",
+        color = "black"
+      ) +
+      ggrepel::geom_text_repel(
+        data = cluster_label_df,
+        aes(x = UMAP_1, y = UMAP_2, label = tumor_cluster),
+        inherit.aes = FALSE,
+        size = 3.3,
+        family = FONT_FAMILY,
+        fontface = "bold",
+        color = "black",
+        min.segment.length = 0,
+        seed = 7,
+        box.padding = 0.25,
+        point.padding = 0.15,
+        segment.size = 0.15
+      ) +
+      scale_color_manual(values = cluster_cols, drop = FALSE) +
+      coord_equal() +
+      labs(title = "Tumor clusters", color = "Tumor cluster") +
+      guides(color = guide_legend(ncol = 2, override.aes = list(size = 2.6, alpha = 1))) +
+      trajectory_theme
+
+    p_time_traj <- ggplot(trajectory_df, aes(UMAP_1, UMAP_2)) +
+      geom_point(aes(color = pseudotime), size = 0.018, alpha = 0.86, stroke = 0) +
+      geom_path(
+        data = trajectory_path,
+        aes(UMAP_1, UMAP_2),
+        inherit.aes = FALSE,
+        linewidth = 0.30,
+        alpha = 0.82,
+        lineend = "round",
+        linejoin = "round",
+        color = "black"
+      ) +
+      scale_color_viridis_c(option = "plasma", name = "Pseudotime") +
+      coord_equal() +
+      labs(title = "Pseudotime") +
+      guides(color = guide_colorbar(
+        title.position = "top",
+        title.hjust = 0.5,
+        barwidth = unit(24, "mm"),
+        barheight = unit(3.0, "mm")
+      )) +
+      trajectory_theme +
+      theme(legend.position = "bottom")
+
+    save_panel_pdf(
+      p_cluster_traj + p_time_traj + plot_layout(widths = c(1.22, 1)),
+      file.path(OUT_DIR, "fig3e_pseudotime_trajectory.pdf"),
+      7.2,
+      3.45
+    )
+  }
+}
+
 message("Figure 3: TWIST1 and PTGES expression panels")
 genes <- intersect(c("TWIST1", "PTGES"), rownames(sc_tumor))
 if (length(genes) > 0) {
@@ -365,4 +486,5 @@ draw(
 )
 close_panel_pdf()
 
+export_large_panel_pngs(OUT_DIR)
 message("Figure 3 nature panels written to: ", OUT_DIR)

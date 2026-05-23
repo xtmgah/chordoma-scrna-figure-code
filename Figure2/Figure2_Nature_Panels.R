@@ -73,7 +73,41 @@ plot_cellchat_networks <- function(cellchat_obj, prefix, source_name = "Chordoma
   close_panel_pdf()
 }
 
-make_cellchat_role_heatmap <- function(cellchat_obj, pattern, title, color.use = NULL, signaling = NULL, transpose = TRUE, heatmap_height = NULL) {
+cellchat_pathway_strength <- function(cellchat_obj) {
+  probs <- cellchat_obj@netP$prob
+  pathways <- cellchat_obj@netP$pathways
+  if (!is.null(probs) && length(dim(probs)) == 3) {
+    strength <- apply(probs, 3, sum, na.rm = TRUE)
+    strength <- strength[intersect(names(strength), pathways)]
+  } else {
+    strength <- setNames(rep(NA_real_, length(pathways)), pathways)
+  }
+  strength
+}
+
+top_cellchat_pathways <- function(cellchat_objects, n = 3) {
+  scores <- lapply(cellchat_objects, cellchat_pathway_strength)
+  common <- Reduce(intersect, lapply(scores, names))
+  if (length(common) == 0) return(character())
+  combined <- Reduce(`+`, lapply(scores, function(x) {
+    x <- x[common]
+    x[is.na(x)] <- 0
+    x
+  }))
+  names(sort(combined, decreasing = TRUE))[seq_len(min(n, length(combined)))]
+}
+
+complete_named_colors <- function(values, preferred = NULL) {
+  values <- unique(as.character(stats::na.omit(values)))
+  if (length(values) == 0) return(character())
+  preferred <- preferred %||% character()
+  preferred <- preferred[names(preferred) %in% values]
+  missing <- setdiff(values, names(preferred))
+  c(preferred, nature_named_palette(missing))[values]
+}
+
+make_cellchat_role_heatmap <- function(cellchat_obj, pattern, title, color.use = NULL, signaling = NULL, transpose = TRUE, heatmap_height = NULL, heatmap_width = NULL, sort_pathways = TRUE, show_celltype_legend = TRUE, title_position = c("column", "row")) {
+  title_position <- match.arg(title_position)
   raw_ht <- CellChat::netAnalysis_signalingRole_heatmap(
     cellchat_obj,
     pattern = pattern,
@@ -87,6 +121,15 @@ make_cellchat_role_heatmap <- function(cellchat_obj, pattern, title, color.use =
   mat <- raw_ht@matrix
   if (transpose) mat <- t(mat)
   mat[is.na(mat)] <- 0
+
+  if (transpose && sort_pathways && ncol(mat) > 1) {
+    pathway_order <- names(sort(colSums(mat, na.rm = TRUE), decreasing = TRUE))
+    mat <- mat[, pathway_order, drop = FALSE]
+  } else if (!transpose && sort_pathways && nrow(mat) > 1) {
+    pathway_order <- names(sort(rowSums(mat, na.rm = TRUE), decreasing = TRUE))
+    mat <- mat[pathway_order, , drop = FALSE]
+  }
+
   max_val <- max(mat, na.rm = TRUE)
   if (!is.finite(max_val) || max_val <= 0) max_val <- 1
   column_strength <- colSums(mat, na.rm = TRUE)
@@ -96,39 +139,77 @@ make_cellchat_role_heatmap <- function(cellchat_obj, pattern, title, color.use =
     border = FALSE,
     height = unit(if (transpose) 10 else 8, "mm")
   )
+  cell_type_colors <- if (is.null(color.use)) {
+    NULL
+  } else {
+    palette_for(union(rownames(mat), colnames(mat)), color.use)
+  }
+  cell_type_legend <- list(
+    title = "Cell type",
+    direction = "horizontal",
+    title_position = "leftcenter",
+    nrow = 2,
+    title_gp = gpar(fontsize = 8.2, fontfamily = FONT_FAMILY, fontface = "plain"),
+    labels_gp = gpar(fontsize = 7.3, fontfamily = FONT_FAMILY),
+    grid_height = unit(3, "mm"),
+    grid_width = unit(3.5, "mm")
+  )
+
   top_anno <- if (transpose) {
     HeatmapAnnotation(
       Spacer = anno_empty(height = unit(4, "mm"), border = FALSE),
       Strength = strength_anno,
-      annotation_name_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY),
+      annotation_name_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY, fontface = "plain"),
       annotation_name_side = "left",
       show_annotation_name = c(Spacer = FALSE, Strength = TRUE)
     )
   } else {
     HeatmapAnnotation(
+      `Cell type` = factor(colnames(mat), levels = colnames(mat)),
       Strength = strength_anno,
-      annotation_name_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY),
-      annotation_name_side = "left"
+      col = list(`Cell type` = cell_type_colors[colnames(mat)]),
+      annotation_name_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY, fontface = "plain"),
+      annotation_name_side = "left",
+      show_annotation_name = c(`Cell type` = TRUE, Strength = TRUE),
+      show_legend = c(`Cell type` = show_celltype_legend, Strength = TRUE),
+      annotation_legend_param = list(`Cell type` = cell_type_legend)
     )
   }
+  left_anno <- NULL
+  if (transpose) {
+    left_anno <- rowAnnotation(
+      `Cell type` = factor(rownames(mat), levels = rownames(mat)),
+      col = list(`Cell type` = cell_type_colors[rownames(mat)]),
+      simple_anno_size = unit(2.4, "mm"),
+      show_annotation_name = FALSE,
+      show_legend = c(`Cell type` = show_celltype_legend),
+      annotation_legend_param = list(`Cell type` = cell_type_legend)
+    )
+  }
+
   Heatmap(
     mat,
     name = "Relative strength",
     col = colorRamp2(c(0, max_val * 0.5, max_val), c("white", "#C6DBEF", "#08519C")),
     top_annotation = top_anno,
+    left_annotation = left_anno,
     cluster_rows = FALSE,
     cluster_columns = FALSE,
     row_names_side = "left",
     row_names_gp = gpar(fontsize = if (transpose) 7.4 else 6.4, fontfamily = FONT_FAMILY),
     column_names_gp = gpar(fontsize = if (transpose) 6.1 else 6.4, fontfamily = FONT_FAMILY),
     column_names_rot = if (transpose) 90 else 45,
-    column_title = NULL,
+    column_title = if (identical(title_position, "column")) title else NULL,
+    column_title_gp = gpar(fontsize = 9, fontfamily = FONT_FAMILY, fontface = "plain"),
+    row_title = if (identical(title_position, "row")) title else NULL,
+    row_title_rot = 0,
+    row_title_gp = gpar(fontsize = 9, fontfamily = FONT_FAMILY, fontface = "plain"),
     rect_gp = gpar(col = "white", lwd = 0.1),
-    width = unit(if (transpose) 6.6 else 2.9, "in"),
+    width = heatmap_width %||% unit(if (transpose) 6.6 else 2.9, "in"),
     height = heatmap_height %||% unit(if (transpose) 2.25 else 0.82, "in"),
     heatmap_legend_param = list(
       direction = "horizontal",
-      title_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY),
+      title_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY, fontface = "plain"),
       labels_gp = gpar(fontsize = 7.3, fontfamily = FONT_FAMILY),
       title_position = "leftcenter",
       legend_width = unit(if (transpose) 36 else 28, "mm"),
@@ -150,8 +231,10 @@ if (requireNamespace("CellChat", quietly = TRUE)) {
   plot_cellchat_networks(cellchat_pc, "fig2b_pc_cellchat")
   plot_cellchat_networks(cellchat_cc, "fig2c_cc_cellchat")
 
-  pathways <- intersect(c("MIF", "FN1", "APP"), intersect(cellchat_pc@netP$pathways, cellchat_cc@netP$pathways))
+  pathways <- top_cellchat_pathways(list(cellchat_pc, cellchat_cc), n = 3)
   if (length(pathways) > 0) {
+    unlink(list.files(OUT_DIR, pattern = "^fig2h_.*_(pc|cc)_hierarchy\\.pdf$", full.names = TRUE))
+    unlink(file.path(OUT_DIR, "fig2i_mif_fn1_app_signaling_comparison.pdf"))
     for (pathway in pathways) {
       pc_cols <- palette_for(levels(cellchat_pc@idents), c(cell_type_palette, macrophage_palette, tcell_palette))
       cc_cols <- palette_for(levels(cellchat_cc@idents), c(cell_type_palette, macrophage_palette, tcell_palette))
@@ -172,10 +255,35 @@ if (requireNamespace("CellChat", quietly = TRUE)) {
       close_panel_pdf()
     }
 
-    open_panel_pdf(file.path(OUT_DIR, "fig2i_mif_fn1_app_signaling_comparison.pdf"), 6.8, 2.25)
-    ht_pc <- make_cellchat_role_heatmap(cellchat_pc, pattern = "all", signaling = pathways, title = "PC", color.use = pc_cols, transpose = FALSE, heatmap_height = unit(0.52, "in"))
-    ht_cc <- make_cellchat_role_heatmap(cellchat_cc, pattern = "all", signaling = pathways, title = "CC", color.use = cc_cols, transpose = FALSE, heatmap_height = unit(0.52, "in"))
-    ComplexHeatmap::draw(ht_pc + ht_cc, heatmap_legend_side = "bottom", annotation_legend_side = "bottom", merge_legends = TRUE, padding = unit(c(12, 2, 2, 2), "mm"))
+    comparison_file <- paste0("fig2i_top3_", paste(tolower(make.names(pathways)), collapse = "_"), "_signaling_comparison.pdf")
+    open_panel_pdf(file.path(OUT_DIR, comparison_file), 3.9, 5.6)
+    ht_pc <- make_cellchat_role_heatmap(
+      cellchat_pc,
+      pattern = "all",
+      signaling = pathways,
+      title = "PC",
+      color.use = pc_cols,
+      transpose = TRUE,
+      heatmap_height = unit(1.55, "in"),
+      heatmap_width = unit(1.35, "in"),
+      sort_pathways = TRUE,
+      show_celltype_legend = FALSE,
+      title_position = "row"
+    )
+    ht_cc <- make_cellchat_role_heatmap(
+      cellchat_cc,
+      pattern = "all",
+      signaling = pathways,
+      title = "CC",
+      color.use = cc_cols,
+      transpose = TRUE,
+      heatmap_height = unit(1.55, "in"),
+      heatmap_width = unit(1.35, "in"),
+      sort_pathways = TRUE,
+      show_celltype_legend = FALSE,
+      title_position = "row"
+    )
+    ComplexHeatmap::draw(ht_pc %v% ht_cc, heatmap_legend_side = "bottom", annotation_legend_side = "bottom", merge_legends = TRUE, padding = unit(c(8, 2, 2, 2), "mm"))
     close_panel_pdf()
   }
 } else {
@@ -201,49 +309,61 @@ if (length(key_cells) >= 2) {
     distinct() %>%
     column_to_rownames("orig.ident")
   anno_df$Cluster <- sample_clusters$Cluster[match(rownames(anno_df), sample_clusters$Sample)]
-  ann_colors <- list(
+  preferred_ann_colors <- list(
     clinical_group = group_palette[c("CC", "PC")],
     Cluster = setNames(c("#D55E00", "#0072B2", "#009E73"), c("1", "2", "3")),
     gender = c("female" = "#CC79A7", "male" = "#56B4E9"),
+    location = c("clivus" = "#0072B2", "mobile spine" = "#E69F00", "sacrum" = "#009E73"),
     status = c("primary" = "#009E73", "recurrence" = "#D55E00"),
     OS_event = c("0" = "grey90", "1" = "black", "/" = "white"),
     PFS_event = c("0" = "grey90", "1" = "#D55E00", "/" = "white")
   )
-  ann_colors <- ann_colors[names(ann_colors) %in% colnames(anno_df)]
+  annotation_labels <- c(
+    clinical_group = "Group",
+    gender = "Gender",
+    location = "Location",
+    status = "Status",
+    OS_event = "OS event",
+    PFS_event = "PFS event",
+    Cluster = "Cluster"
+  )
+  anno_df <- anno_df[, intersect(names(annotation_labels), colnames(anno_df)), drop = FALSE]
+  anno_plot <- anno_df
+  for (col_name in colnames(anno_plot)) {
+    anno_plot[[col_name]] <- factor(as.character(anno_plot[[col_name]]), levels = unique(as.character(anno_plot[[col_name]])))
+  }
+  ann_colors <- lapply(colnames(anno_plot), function(col_name) {
+    complete_named_colors(anno_plot[[col_name]], preferred_ann_colors[[col_name]])
+  })
+  names(ann_colors) <- colnames(anno_plot)
+  annotation_legend_param <- lapply(colnames(anno_plot), function(col_name) {
+    list(
+      title = annotation_labels[[col_name]],
+      direction = "horizontal",
+      title_position = "leftcenter",
+      nrow = 1,
+      title_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY, fontface = "plain"),
+      labels_gp = gpar(fontsize = 7.4, fontfamily = FONT_FAMILY),
+      grid_height = unit(3.2, "mm"),
+      grid_width = unit(4, "mm")
+    )
+  })
+  names(annotation_legend_param) <- colnames(anno_plot)
   heatmap_pdf <- file.path(OUT_DIR, "fig2d_patient_composition_cluster_heatmap.pdf")
   open_panel_pdf(heatmap_pdf, 5.8, 2.8)
   heat_mat <- t(prop_key)
   heat_mat <- t(scale(t(heat_mat)))
   heat_mat[is.na(heat_mat)] <- 0
   top_anno <- HeatmapAnnotation(
-    df = anno_df,
+    df = anno_plot,
     col = ann_colors,
-    simple_anno_size = unit(1.5, "mm"),
-    annotation_name_gp = gpar(fontsize = 7, fontfamily = FONT_FAMILY),
-    show_annotation_name = FALSE,
-    show_legend = setNames(colnames(anno_df) %in% c("clinical_group", "Cluster"), colnames(anno_df)),
-    annotation_legend_param = list(
-      clinical_group = list(
-        title = "Group",
-        direction = "horizontal",
-        title_position = "leftcenter",
-        nrow = 1,
-        title_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY),
-        labels_gp = gpar(fontsize = 7.4, fontfamily = FONT_FAMILY),
-        grid_height = unit(3.2, "mm"),
-        grid_width = unit(4, "mm")
-      ),
-      Cluster = list(
-        title = "Cluster",
-        direction = "horizontal",
-        title_position = "leftcenter",
-        nrow = 1,
-        title_gp = gpar(fontsize = 8, fontfamily = FONT_FAMILY),
-        labels_gp = gpar(fontsize = 7.4, fontfamily = FONT_FAMILY),
-        grid_height = unit(3.2, "mm"),
-        grid_width = unit(4, "mm")
-      )
-    )
+    simple_anno_size = unit(1.45, "mm"),
+    annotation_name_gp = gpar(fontsize = 6.4, fontfamily = FONT_FAMILY, fontface = "plain"),
+    annotation_name_side = "left",
+    annotation_label = unname(annotation_labels[colnames(anno_plot)]),
+    show_annotation_name = TRUE,
+    show_legend = setNames(rep(TRUE, ncol(anno_plot)), colnames(anno_plot)),
+    annotation_legend_param = annotation_legend_param
   )
   ht <- Heatmap(
     heat_mat,
@@ -336,4 +456,5 @@ if (length(key_cells) >= 2) {
   }
 }
 
+export_large_panel_pngs(OUT_DIR)
 message("Figure 2 nature panels written to: ", OUT_DIR)
