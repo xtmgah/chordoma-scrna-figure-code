@@ -66,7 +66,7 @@ plot_cellchat_networks <- function(cellchat_obj, prefix, source_name = "Chordoma
     theme(legend.position = "right")
   save_panel_pdf(p_scatter, file.path(OUT_DIR, paste0(prefix, "_signaling_role_scatter.pdf")), 4.8, 3.6)
 
-  open_panel_pdf(file.path(OUT_DIR, paste0(prefix, "_signaling_role_heatmap.pdf")), 11.8, 7.4)
+  open_panel_pdf(file.path(OUT_DIR, paste0(prefix, "_signaling_role_heatmap.pdf")), 10.7, 7.8)
   ht_out <- make_cellchat_role_heatmap_original(cellchat_obj, pattern = "outgoing", color.use = colors)
   ht_in <- make_cellchat_role_heatmap_original(cellchat_obj, pattern = "incoming", color.use = colors)
   ComplexHeatmap::draw(ht_out + ht_in, heatmap_legend_side = "right", annotation_legend_side = "bottom", merge_legends = TRUE, padding = unit(c(4, 3, 3, 3), "mm"))
@@ -106,16 +106,40 @@ complete_named_colors <- function(values, preferred = NULL) {
   c(preferred, nature_named_palette(missing))[values]
 }
 
-style_cellchat_heatmap <- function(ht, row_font = 6.0, column_font = 6.2, title_font = 10.8) {
+style_cellchat_heatmap <- function(
+  ht,
+  row_font = 7.0,
+  column_font = 18,
+  title_font = 15.5,
+  matrix_width_cm = NULL,
+  right_bar_width_mm = 16,
+  top_bar_height_mm = 11,
+  bottom_bar_height_mm = 3.2
+) {
   ht@row_names_param$gp <- gpar(fontsize = row_font, lineheight = 0.88, fontfamily = FONT_FAMILY)
   ht@column_names_param$gp <- gpar(fontsize = column_font, lineheight = 0.88, fontfamily = FONT_FAMILY)
   ht@column_title_param$gp <- gpar(fontsize = title_font, lineheight = 0.9, fontfamily = FONT_FAMILY, fontface = "plain")
-  ht@matrix_legend_param$title_gp <- gpar(fontsize = 8.8, fontfamily = FONT_FAMILY, fontface = "plain")
-  ht@matrix_legend_param$labels_gp <- gpar(fontsize = 8.0, fontfamily = FONT_FAMILY)
+  ht@matrix_legend_param$title_gp <- gpar(fontsize = 9.2, fontfamily = FONT_FAMILY, fontface = "plain")
+  ht@matrix_legend_param$labels_gp <- gpar(fontsize = 8.4, fontfamily = FONT_FAMILY)
+  if (!is.null(matrix_width_cm)) {
+    ht@matrix_param$width <- unit(matrix_width_cm, "cm")
+  }
+  if (!is.null(ht@right_annotation)) {
+    ht@right_annotation@width <- unit(right_bar_width_mm, "mm")
+    ht@right_annotation@anno_size <- unit(right_bar_width_mm, "mm")
+  }
+  if (!is.null(ht@top_annotation)) {
+    ht@top_annotation@height <- unit(top_bar_height_mm, "mm")
+    ht@top_annotation@anno_size <- unit(top_bar_height_mm, "mm")
+  }
+  if (!is.null(ht@bottom_annotation)) {
+    ht@bottom_annotation@height <- unit(bottom_bar_height_mm, "mm")
+    ht@bottom_annotation@anno_size <- unit(bottom_bar_height_mm, "mm")
+  }
   ht
 }
 
-make_cellchat_role_heatmap_original <- function(cellchat_obj, pattern, title = NULL, display_title = NULL, color.use = NULL, signaling = NULL, width = 8.8, height = 14.2, title_font = 10.8) {
+make_cellchat_role_heatmap_original <- function(cellchat_obj, pattern, title = NULL, display_title = NULL, color.use = NULL, signaling = NULL, width = 8.8, height = 14.2, title_font = 15.5) {
   ht <- CellChat::netAnalysis_signalingRole_heatmap(
     cellchat_obj,
     pattern = pattern,
@@ -129,7 +153,16 @@ make_cellchat_role_heatmap_original <- function(cellchat_obj, pattern, title = N
     cluster.rows = FALSE,
     cluster.cols = FALSE
   )
-  ht <- style_cellchat_heatmap(ht, title_font = title_font)
+  ht <- style_cellchat_heatmap(
+    ht,
+    row_font = 7.0,
+    column_font = 18,
+    title_font = title_font,
+    matrix_width_cm = 7.2,
+    right_bar_width_mm = 16,
+    top_bar_height_mm = 11,
+    bottom_bar_height_mm = 3.2
+  )
   if (!is.null(display_title)) {
     ht@column_title <- display_title
     ht@column_title_param$gp <- gpar(fontsize = title_font, lineheight = 0.9, fontfamily = FONT_FAMILY, fontface = "plain")
@@ -278,14 +311,14 @@ if (requireNamespace("CellChat", quietly = TRUE)) {
       names(cc_group_size) <- levels(cellchat_cc@idents)
       vertex_weight_max <- max(c(pc_group_size, cc_group_size), na.rm = TRUE)
 
-      open_panel_pdf(file.path(OUT_DIR, paste0("fig2h_", pathway, "_pc_hierarchy.pdf")), 8.2, 5.2)
-      par(family = FONT_FAMILY, mar = c(0.7, 3.5, 1.5, 3.5), xpd = NA)
-      CellChat::netVisual_aggregate(cellchat_pc, signaling = pathway, vertex.receiver = seq_len(min(3, length(levels(cellchat_pc@idents)))), layout = "hierarchy", color.use = pc_cols, vertex.weight = pc_group_size, vertex.weight.max = vertex_weight_max, vertex.size.max = 20, vertex.label.cex = 0.58, edge.width.max = 2.35, alpha.edge = 0.45, arrow.size = 0.12, arrow.width = 0.8, pt.title = 10.5, title.space = 3.5)
+      open_panel_pdf(file.path(OUT_DIR, paste0("fig2h_", pathway, "_pc_hierarchy.pdf")), 6.7, 4.0)
+      par(family = FONT_FAMILY, mar = c(0.45, 2.35, 1.1, 2.35), xpd = NA)
+      CellChat::netVisual_aggregate(cellchat_pc, signaling = pathway, vertex.receiver = seq_len(min(3, length(levels(cellchat_pc@idents)))), layout = "hierarchy", color.use = pc_cols, vertex.weight = pc_group_size, vertex.weight.max = vertex_weight_max, vertex.size.max = 42, vertex.size = 7.5, vertex.label.cex = 0.64, edge.width.max = 5.3, alpha.edge = 0.58, arrow.size = 0.18, arrow.width = 1.9, pt.title = 13.5, title.space = 3.2)
       close_panel_pdf()
 
-      open_panel_pdf(file.path(OUT_DIR, paste0("fig2h_", pathway, "_cc_hierarchy.pdf")), 8.2, 5.2)
-      par(family = FONT_FAMILY, mar = c(0.7, 3.5, 1.5, 3.5), xpd = NA)
-      CellChat::netVisual_aggregate(cellchat_cc, signaling = pathway, vertex.receiver = seq_len(min(3, length(levels(cellchat_cc@idents)))), layout = "hierarchy", color.use = cc_cols, vertex.weight = cc_group_size, vertex.weight.max = vertex_weight_max, vertex.size.max = 20, vertex.label.cex = 0.58, edge.width.max = 2.35, alpha.edge = 0.45, arrow.size = 0.12, arrow.width = 0.8, pt.title = 10.5, title.space = 3.5)
+      open_panel_pdf(file.path(OUT_DIR, paste0("fig2h_", pathway, "_cc_hierarchy.pdf")), 6.7, 4.0)
+      par(family = FONT_FAMILY, mar = c(0.45, 2.35, 1.1, 2.35), xpd = NA)
+      CellChat::netVisual_aggregate(cellchat_cc, signaling = pathway, vertex.receiver = seq_len(min(3, length(levels(cellchat_cc@idents)))), layout = "hierarchy", color.use = cc_cols, vertex.weight = cc_group_size, vertex.weight.max = vertex_weight_max, vertex.size.max = 42, vertex.size = 7.5, vertex.label.cex = 0.64, edge.width.max = 5.3, alpha.edge = 0.58, arrow.size = 0.18, arrow.width = 1.9, pt.title = 13.5, title.space = 3.2)
       close_panel_pdf()
     }
 
@@ -329,6 +362,11 @@ if (length(key_cells) >= 2) {
   hclust_res <- hclust(dist_mat, method = "ward.D2")
   sample_clusters <- data.frame(Sample = rownames(prop_key), Cluster = factor(cutree(hclust_res, k = 3)), stringsAsFactors = FALSE)
 
+  heat_mat <- t(prop_key)
+  heat_mat <- t(scale(t(heat_mat)))
+  heat_mat[is.na(heat_mat)] <- 0
+  sample_order <- colnames(heat_mat)
+
   anno_cols <- intersect(c("orig.ident", "clinical_group", "gender", "location", "status", "OS_event", "PFS_event"), colnames(meta))
   anno_df <- meta %>%
     as.data.frame() %>%
@@ -336,7 +374,12 @@ if (length(key_cells) >= 2) {
     select(all_of(anno_cols)) %>%
     distinct() %>%
     column_to_rownames("orig.ident")
-  anno_df$Cluster <- sample_clusters$Cluster[match(rownames(anno_df), sample_clusters$Sample)]
+  missing_anno <- setdiff(sample_order, rownames(anno_df))
+  if (length(missing_anno) > 0) {
+    stop("Missing clinical annotation for samples: ", paste(missing_anno, collapse = ", "))
+  }
+  anno_df <- anno_df[sample_order, , drop = FALSE]
+  anno_df$Cluster <- sample_clusters$Cluster[match(sample_order, sample_clusters$Sample)]
   preferred_ann_colors <- list(
     clinical_group = group_palette[c("CC", "PC")],
     Cluster = setNames(c("#D55E00", "#0072B2", "#009E73"), c("1", "2", "3")),
@@ -347,18 +390,30 @@ if (length(key_cells) >= 2) {
     PFS_event = c("0" = "grey90", "1" = "#D55E00", "/" = "white")
   )
   annotation_labels <- c(
-    clinical_group = "Group",
-    gender = "Gender",
-    location = "Location",
-    status = "Status",
-    OS_event = "OS event",
+    Cluster = "Cluster",
     PFS_event = "PFS event",
-    Cluster = "Cluster"
+    OS_event = "OS event",
+    status = "Status",
+    location = "Location",
+    gender = "Gender",
+    clinical_group = "Group"
+  )
+  annotation_levels <- list(
+    Cluster = c("1", "2", "3"),
+    PFS_event = c("0", "1", "/"),
+    OS_event = c("0", "1", "/"),
+    status = c("primary", "recurrence"),
+    location = c("clivus", "sacrum", "mobile spine"),
+    gender = c("female", "male"),
+    clinical_group = c("CC", "PC")
   )
   anno_df <- anno_df[, intersect(names(annotation_labels), colnames(anno_df)), drop = FALSE]
   anno_plot <- anno_df
   for (col_name in colnames(anno_plot)) {
-    anno_plot[[col_name]] <- factor(as.character(anno_plot[[col_name]]), levels = unique(as.character(anno_plot[[col_name]])))
+    observed_levels <- unique(as.character(stats::na.omit(anno_plot[[col_name]])))
+    defined_levels <- annotation_levels[[col_name]]
+    ordered_levels <- c(defined_levels[defined_levels %in% observed_levels], setdiff(observed_levels, defined_levels))
+    anno_plot[[col_name]] <- factor(as.character(anno_plot[[col_name]]), levels = ordered_levels)
   }
   ann_colors <- lapply(colnames(anno_plot), function(col_name) {
     complete_named_colors(anno_plot[[col_name]], preferred_ann_colors[[col_name]])
@@ -379,9 +434,6 @@ if (length(key_cells) >= 2) {
   names(annotation_legend_param) <- colnames(anno_plot)
   heatmap_pdf <- file.path(OUT_DIR, "fig2d_patient_composition_cluster_heatmap.pdf")
   open_panel_pdf(heatmap_pdf, 5.8, 2.8)
-  heat_mat <- t(prop_key)
-  heat_mat <- t(scale(t(heat_mat)))
-  heat_mat[is.na(heat_mat)] <- 0
   top_anno <- HeatmapAnnotation(
     df = anno_plot,
     col = ann_colors,

@@ -100,6 +100,7 @@ for (figure in figures) {
   dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
   pdfs <- sort(list.files(source_dir, pattern = "\\.pdf$", full.names = TRUE))
+  pdfs <- pdfs[!grepl(" copy\\.pdf$|_copy\\.pdf$", basename(pdfs))]
   if (!length(pdfs)) {
     warning("No PDF panels found for ", figure, " in ", source_dir)
     next

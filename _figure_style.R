@@ -43,7 +43,11 @@ pdfhr2 <- function(...) {
   invisible(TRUE)
 }
 
-pdfhr2()
+if (identical(Sys.getenv("CHORDOMA_DISABLE_SHOWTEXT"), "1")) {
+  if (requireNamespace("showtext", quietly = TRUE)) showtext::showtext_auto(FALSE)
+} else {
+  pdfhr2()
+}
 
 nature_palette <- c(
   "#3B5BA5", "#D55E00", "#009E73", "#CC79A7", "#0072B2", "#E69F00",

@@ -13,6 +13,7 @@ Manuscript information is provisional and can be updated before release. The int
 - `Figure3/Figure3_Nature_Panels.R`: final Figure 3 panel-generation code.
 - `Figure4/Figure4_Nature_Panels.R`: final Figure 4 panel-generation code.
 - `Figure5/Figure5_Nature_Panels.R`: final Figure 5 panel-generation code.
+- `scripts/final_main_figure_updates.R`: final manuscript update script for panels that were revised after the main Nature-panel scripts, including Figure 2d OS/PFS, Figure 3d CytoTRACE2, Figure 3e Monocle3 pseudotime, and Figure 3i PC-gained GO enrichment.
 - `review/chordoma_figure_reproducibility.Rmd`: review document combining rendered panels and source code.
 - `review/render_review_html.R`: helper script for building panel previews and rendering the review HTML.
 - `data_manifest.tsv`: required and optional input files expected by the final plotting scripts.
@@ -22,6 +23,8 @@ Manuscript information is provisional and can be updated before release. The int
 Large input data objects and generated figures are intentionally not included in this repository.
 
 The public repository intentionally keeps only the curated Nature-panel plotting scripts. Earlier exploratory/original plotting scripts were removed from version control to reduce duplication and make the manuscript code release easier to review.
+
+This version was synchronized to the completed main-figure deck/PDF used for manuscript submission. Manual Illustrator/Keynote text edits are not represented as data changes; the included scripts reproduce the final computational panels and shared color conventions.
 
 ## Color Conventions
 
@@ -105,6 +108,8 @@ After placing the required input files, run all final panels with:
 source("run_all_nature_figures.R")
 ```
 
+`run_all_nature_figures.R` runs the Figure 1-5 Nature-panel scripts and then applies `scripts/final_main_figure_updates.R`, which overwrites the final Figure 2d and Figure 3d/e/i replacement panels used in the submitted main figures.
+
 Or run a single figure:
 
 ```r
@@ -113,6 +118,7 @@ source("Figure2/Figure2_Nature_Panels.R")
 source("Figure3/Figure3_Nature_Panels.R")
 source("Figure4/Figure4_Nature_Panels.R")
 source("Figure5/Figure5_Nature_Panels.R")
+source("scripts/final_main_figure_updates.R")
 ```
 
 Each final script writes PDF panels to:

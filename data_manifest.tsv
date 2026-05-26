@@ -6,7 +6,12 @@ Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/cellchat_object.rds	yes	CellChat
 Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/cellchat_PC.rds	yes	CellChat object for PC subset.
 Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/cellchat_CC.rds	yes	CellChat object for CC subset.
 Figure2	Figure2/Figure2_Nature_Panels.R	Figure2/sc_combined_clean_clinical_full.rds	yes	Clinical Seurat object used for sample composition clustering and optional survival panels.
+Figure2	scripts/final_main_figure_updates.R	Figure2/sample_props_complete.rds	yes	Sample-level major cell-type proportions used for final composition-cluster OS/PFS panels.
+Figure2	scripts/final_main_figure_updates.R	Figure2/clinical.csv	yes	Clinical survival table used for final age-adjusted composition-cluster OS/PFS panels.
 Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/sc_tumor.rds	yes	Tumor-cell Seurat object with tumor subclusters and clinical metadata.
+Figure3	scripts/final_main_figure_updates.R	Figure3/sc_tumor_with_CytoTRACE2.rds	yes	Tumor-cell Seurat object containing CytoTRACE2_Score for the final developmental-potential panel.
+Figure3	scripts/final_main_figure_updates.R	Figure3/cds.rds	yes	Monocle3 cell_data_set object used for the final tumor pseudotime trajectory panel.
+Figure3	scripts/final_main_figure_updates.R	Figure3/DEGs_PCvsCC_AUC_Result.csv	yes	Updated PC-vs-CC marker/AUC table used for final PC-gained GO enrichment.
 Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/graph_cc.rds	yes	CC co-expression network igraph object.
 Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/graph_pc.rds	yes	PC co-expression network igraph object.
 Figure3	Figure3/Figure3_Nature_Panels.R	Figure3/mat_cc_scaled.rds	yes	Scaled dynamic gene-expression matrix for CC pseudotime heatmap.

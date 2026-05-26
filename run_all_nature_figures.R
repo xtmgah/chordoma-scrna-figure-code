@@ -8,7 +8,8 @@ scripts <- c(
   file.path(root_dir, "Figure2", "Figure2_Nature_Panels.R"),
   file.path(root_dir, "Figure3", "Figure3_Nature_Panels.R"),
   file.path(root_dir, "Figure4", "Figure4_Nature_Panels.R"),
-  file.path(root_dir, "Figure5", "Figure5_Nature_Panels.R")
+  file.path(root_dir, "Figure5", "Figure5_Nature_Panels.R"),
+  file.path(root_dir, "scripts", "final_main_figure_updates.R")
 )
 
 for (script in scripts) {

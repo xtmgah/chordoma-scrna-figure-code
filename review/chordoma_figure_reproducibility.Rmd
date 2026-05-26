@@ -34,6 +34,7 @@ script_table <- data.frame(
 )
 
 style_script <- file.path(repo_root, "_figure_style.R")
+final_update_script <- file.path(repo_root, "scripts", "final_main_figure_updates.R")
 
 result_sections <- read.delim(
   file.path(repo_root, "manuscript_sections.tsv"),
@@ -142,6 +143,8 @@ The large processed input objects are not embedded here. To regenerate the panel
 source("run_all_nature_figures.R")
 ```
 
+The final submitted main figures include a small set of post-panel replacement plots. These are encoded in `scripts/final_main_figure_updates.R` and are run automatically by `run_all_nature_figures.R`.
+
 To rebuild this HTML report after the panels have been generated, run:
 
 ```r
@@ -193,6 +196,14 @@ render_panel_gallery("Figure3")
 
 ```{r figure3-code, results='asis'}
 emit_source_block(script_table$script[script_table$figure == "Figure3"])
+```
+
+# Final Main-Figure Update Script
+
+This script applies the final manuscript-specific replacements for Figure 2d and Figure 3d/e/i after the core Figure 1-5 panel scripts have run.
+
+```{r final-update-code, results='asis'}
+emit_source_block(final_update_script)
 ```
 
 # Figure 4
